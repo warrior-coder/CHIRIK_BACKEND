@@ -52,7 +52,7 @@ export class CommentsService {
         createCommentDto: CreateCommentDto,
         author: UsersEntity,
         record: RecordsEntity,
-    ): Promise<RecordsEntity> {
+    ): Promise<RecordCommentsEntity> {
         if (createCommentDto.text === '') {
             throw new BadRequestException('comment cannot be empty');
         }
@@ -61,12 +61,13 @@ export class CommentsService {
             throw new NotFoundException('record not found');
         }
 
-        const comment = this.recordsRepository.create({
+        const comment = this.recordCommentsRepository.create({
             text: createCommentDto.text,
             author,
+            record,
         });
 
-        return this.recordsRepository.save(comment);
+        return this.recordCommentsRepository.save(comment);
     }
 
     public getRecordCommentsCount(record: RecordsEntity): Promise<number> {

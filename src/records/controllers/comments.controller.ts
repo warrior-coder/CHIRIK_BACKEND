@@ -22,7 +22,7 @@ import { CommentsService } from '../services/comments.service';
 import { RecordsService } from '../services/records.service';
 
 @UseGuards(AuthGuard)
-@Controller('comments')
+@Controller('/comments')
 export class CommentsController {
     constructor(private readonly recordsService: RecordsService, private readonly commentsService: CommentsService) {}
 
@@ -51,7 +51,7 @@ export class CommentsController {
         return comment;
     }
 
-    @Get('/upper-lever/paginate/record/:recordId')
+    @Get('/record/:recordId')
     public async getRecordComments(@Param('recordId', ParseIntPipe) recordId: number) {
         const record = await this.recordsService.getRecordById(recordId);
 

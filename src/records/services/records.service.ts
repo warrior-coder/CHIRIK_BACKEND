@@ -54,19 +54,19 @@ export class RecordsService {
             throw new BadRequestException('record cannot be empty');
         }
 
-        const tweet: RecordsEntity = this.recordsRepository.create({
+        const record: RecordsEntity = this.recordsRepository.create({
             text: createRecordDto.text,
             author,
         });
 
-        await this.recordsRepository.save(tweet);
+        await this.recordsRepository.save(record);
 
-        tweet.images = await Promise.all(
+        record.images = await Promise.all(
             imageFiles.map(async (imageFile): Promise<RecordImagesEntity> => {
                 const fileName = await this.filesService.writeImageFile(imageFile);
                 const image = this.recordImagesRepository.create({
                     name: fileName,
-                    record: tweet,
+                    record,
                 });
 
                 await this.recordImagesRepository.save(image);
@@ -77,25 +77,25 @@ export class RecordsService {
             }),
         );
 
-        return tweet;
+        return record;
     }
 
-    public async deleteRecord(tweet: RecordsEntity): Promise<RecordsEntity> {
-        if (!tweet) {
-            throw new NotFoundException('tweet not found');
+    public async deleteRecord(record: RecordsEntity): Promise<RecordsEntity> {
+        if (!record) {
+            throw new NotFoundException('record not found');
         }
 
-        const tweetImages = await this.recordImagesRepository
+        const recordImages = await this.recordImagesRepository
             .createQueryBuilder('record_images')
-            .where(`record_images."recordId" = :recordId`, { recordId: tweet.id })
+            .where(`record_images."recordId" = :recordId`, { recordId: record.id })
             .getMany();
 
-        tweetImages.forEach(async (tweetImage: RecordImagesEntity) => {
-            this.filesService.removeImageFile(tweetImage.name);
-            await this.recordImagesRepository.remove(tweetImage);
+        recordImages.forEach(async (recordImage: RecordImagesEntity) => {
+            this.filesService.removeImageFile(recordImage.name);
+            await this.recordImagesRepository.remove(recordImage);
         });
 
-        return this.recordsRepository.remove(tweet);
+        return this.recordsRepository.remove(record);
     }
 
     public getRecordById(recordId: number): Promise<RecordsEntity | null> {

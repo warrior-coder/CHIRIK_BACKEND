@@ -147,13 +147,13 @@ export class AuthService {
             subject: `Security alert for ${userEmail}`,
             html: `
                 <div style="font-family:Helvetica;">
-                    <h2>      
+                    <h2>
                         A new sign-in
                     </h2>
                     <p style="font-size:16px;">
                         We noticed a new sign-in to your Twitter Account. If this was you, you don’t need to do anything. If not, take care of your account security.
                     </p>
-                    <div style="font-size:16px; font-style: italic;">      
+                    <div style="font-size:16px; font-style: italic;">
                         Ip Address: ${privacyInfo.ipAddress}
                         <br>
                         User Agent: ${privacyInfo.userAgent}
@@ -171,7 +171,7 @@ export class AuthService {
             subject: `${verificationCode} is your Twitter verification code`,
             html: `
                 <div style="font-family:Helvetica;">
-                    <h2>      
+                    <h2>
                         Confirm your email address
                     </h2>
                     <p style="font-size:16px;">
@@ -180,7 +180,7 @@ export class AuthService {
                     <p style="font-size:16px;">
                         Please enter this verification code to get started on Twitter:
                     </p>
-                    <div style="font-size:32px; font-weight:bold;">      
+                    <div style="font-size:32px; font-weight:bold;">
                         ${verificationCode}
                     </div>
                     <div style="font-family:Helvetica; font-size:14px;">

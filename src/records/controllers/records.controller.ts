@@ -22,18 +22,18 @@ import { CreateRecordDto } from '../dto/create-record.dto';
 import { RecordsService } from '../services/records.service';
 
 @UseGuards(AuthGuard)
-@Controller('records')
+@Controller('/records')
 export class RecordsController {
     constructor(private readonly usersService: UsersService, private readonly recordsService: RecordsService) {}
 
-    @Get('/paginate/user/:userId')
+    @Get('/user/:userId')
     public async getAllUserRecords(@Param('userId', ParseIntPipe) userId: number) {
         const user = await this.usersService.getUserById(userId);
 
         return this.recordsService.getAllUserRecords(user);
     }
 
-    @Get('/all/paginate')
+    @Get('/all')
     public getAllRecords() {
         return this.recordsService.getAllRecords();
     }
