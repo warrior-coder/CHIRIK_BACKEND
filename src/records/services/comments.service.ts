@@ -93,43 +93,8 @@ export class CommentsService {
         return comment;
     }
 
-    public async getRecordCommentsCount(record: RecordsEntity): Promise<CommentsCount> {
-        if (!record) {
-            throw new NotFoundException('record not found');
-        }
-
-        const recordDescendantsTree = await this.recordsTreeRepository.findDescendantsTree(record);
-        const commentsCount = this.findCommentsCountInRecordDescendantsTree(recordDescendantsTree);
-
-        return {
-            commentsCount,
-        };
-    }
-
-    private findCommentsCountInRecordDescendantsTree(recordDescendantsTree: RecordsEntity) {
-        let commentsCount = 0;
-
-        recordDescendantsTree.children.forEach((childRecord: RecordsEntity): void => {
-            if (childRecord.isComment) {
-                commentsCount = commentsCount + 1 + this.findCommentsCountInRecordDescendantsTree(childRecord);
-            }
-        });
-
-        return commentsCount;
-    }
-
-    public async getRecordCommentsTree(record: RecordsEntity): Promise<RecordsEntity> {
-        if (!record) {
-            throw new NotFoundException('record not found');
-        }
-
-        const recordDescendantsTree = await this.recordsTreeRepository.findDescendantsTree(record, {
-            relations: ['images'],
-        });
-
-        const recordCommentsTree = this.filterRecordDescendantsTreeForCommentsTree(recordDescendantsTree);
-
-        return recordCommentsTree;
+    public getRecordCommentsCount(record: RecordsEntity): Promise<CommentsCount> {
+        throw new NotFoundException('record not found');
     }
 
     public getUpperLevelCommentsOfRecord(record: RecordsEntity): Promise<RecordsEntity[]> {
@@ -144,42 +109,6 @@ export class CommentsService {
             .where(`records."parentId" = :recordId`, { recordId: record.id })
             .orderBy('records.createdAt', 'DESC')
             .getMany();
-    }
-
-    public getPaginatedUpperLevelCommentsOfRecord(
-        record: RecordsEntity,
-        page: number,
-        limit: number,
-    ): Promise<RecordsEntity[]> {
-        if (!record) {
-            throw new NotFoundException('record not found');
-        }
-
-        return this.recordsTreeRepository
-            .createQueryBuilder('records')
-            .leftJoinAndSelect('records.images', 'images')
-            .leftJoinAndSelect('records.author', 'author')
-            .where(`records."parentId" = :recordId`, { recordId: record.id })
-            .orderBy('records.createdAt', 'DESC')
-            .skip(page * limit)
-            .take(limit)
-            .getMany();
-    }
-
-    private filterRecordDescendantsTreeForCommentsTree(recordDescendantsTree: RecordsEntity): RecordsEntity {
-        recordDescendantsTree.children = recordDescendantsTree.children.filter(
-            (recordChild: RecordsEntity): boolean => {
-                if (recordChild.isComment) {
-                    recordChild = this.filterRecordDescendantsTreeForCommentsTree(recordChild);
-
-                    return true;
-                } else {
-                    return false;
-                }
-            },
-        );
-
-        return recordDescendantsTree;
     }
 
     public async clearCommentAndMarkAsDeleted(comment: RecordsEntity): Promise<RecordsEntity> {

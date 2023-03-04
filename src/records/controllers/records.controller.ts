@@ -27,22 +27,15 @@ export class RecordsController {
     constructor(private readonly usersService: UsersService, private readonly recordsService: RecordsService) {}
 
     @Get('/paginate/user/:userId')
-    public async getPaginatedAllUserRecords(
-        @Param('userId', ParseIntPipe) userId: number,
-        @Query('page', ParseIntPipe) page: number,
-        @Query('limit', ParseIntPipe) limit: number,
-    ) {
+    public async getAllUserRecords(@Param('userId', ParseIntPipe) userId: number) {
         const user = await this.usersService.getUserById(userId);
 
-        return this.recordsService.getPaginatedAllUserRecords(user, page, limit);
+        return this.recordsService.getAllUserRecords(user);
     }
 
     @Get('/all/paginate')
-    public getPaginatedAllRecords(
-        @Query('page', ParseIntPipe) page: number,
-        @Query('limit', ParseIntPipe) limit: number,
-    ) {
-        return this.recordsService.getPaginatedAllRecords(page, limit);
+    public getAllRecords() {
+        return this.recordsService.getAllRecords();
     }
 
     @Post('/')

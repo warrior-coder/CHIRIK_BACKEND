@@ -20,7 +20,7 @@ export class RecordsService {
         @InjectRepository(RecordLikesEntity) private readonly recordLikesRepository: Repository<RecordLikesEntity>,
     ) {}
 
-    public getPaginatedAllUserRecords(user: UsersEntity, page: number, limit: number): Promise<RecordsEntity[]> {
+    public getAllUserRecords(user: UsersEntity): Promise<RecordsEntity[]> {
         if (!user) {
             throw new NotFoundException('user not found');
         }
@@ -31,12 +31,10 @@ export class RecordsService {
             .leftJoinAndSelect('records.author', 'author')
             .where(`records."isComment" = FALSE AND records."authorId" = :userId`, { userId: user.id })
             .orderBy('records.createdAt', 'DESC')
-            .skip(page * limit)
-            .take(limit)
             .getMany();
     }
 
-    public getPaginatedAllRecords(page: number, limit: number) {
+    public getAllRecords() {
         return this.recordsTreeRepository.find({
             where: {
                 isComment: false,
@@ -48,8 +46,6 @@ export class RecordsService {
             order: {
                 createdAt: 'DESC',
             },
-            skip: page * limit,
-            take: limit,
         });
     }
 
