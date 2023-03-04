@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeleteResult, Repository, TreeRepository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 
 import { FilesService } from 'src/files/files.service';
 import { LikesCount } from 'src/interfaces/likes-count.interface';
@@ -14,7 +14,7 @@ import { RecordsEntity } from '../entities/records.entity';
 @Injectable()
 export class RecordsService {
     constructor(
-        @InjectRepository(RecordsEntity) private readonly recordsTreeRepository: TreeRepository<RecordsEntity>,
+        @InjectRepository(RecordsEntity) private readonly recordsRepository: Repository<RecordsEntity>,
         @InjectRepository(RecordImagesEntity) private readonly recordImagesRepository: Repository<RecordImagesEntity>,
         private readonly filesService: FilesService,
         @InjectRepository(RecordLikesEntity) private readonly recordLikesRepository: Repository<RecordLikesEntity>,
@@ -25,7 +25,7 @@ export class RecordsService {
             throw new NotFoundException('user not found');
         }
 
-        return this.recordsTreeRepository
+        return this.recordsRepository
             .createQueryBuilder('records')
             .leftJoinAndSelect('records.images', 'images')
             .leftJoinAndSelect('records.author', 'author')
@@ -35,10 +35,7 @@ export class RecordsService {
     }
 
     public getAllRecords() {
-        return this.recordsTreeRepository.find({
-            where: {
-                isComment: false,
-            },
+        return this.recordsRepository.find({
             relations: {
                 images: true,
                 author: true,
@@ -58,14 +55,12 @@ export class RecordsService {
             throw new BadRequestException('record cannot be empty');
         }
 
-        const tweet: RecordsEntity = this.recordsTreeRepository.create({
+        const tweet: RecordsEntity = this.recordsRepository.create({
             text: createRecordDto.text,
-            isComment: false,
-            isRetweet: false,
             author,
         });
 
-        await this.recordsTreeRepository.save(tweet);
+        await this.recordsRepository.save(tweet);
 
         tweet.images = await Promise.all(
             imageFiles.map(async (imageFile): Promise<RecordImagesEntity> => {
@@ -101,11 +96,11 @@ export class RecordsService {
             await this.recordImagesRepository.remove(tweetImage);
         });
 
-        return this.recordsTreeRepository.remove(tweet);
+        return this.recordsRepository.remove(tweet);
     }
 
     public getRecordById(recordId: number): Promise<RecordsEntity | null> {
-        return this.recordsTreeRepository.findOne({
+        return this.recordsRepository.findOne({
             where: {
                 id: recordId,
             },
@@ -117,7 +112,7 @@ export class RecordsService {
     }
 
     public getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
-        const record = this.recordsTreeRepository.findOne({
+        const record = this.recordsRepository.findOne({
             where: {
                 id: recordId,
             },

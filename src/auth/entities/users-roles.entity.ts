@@ -8,7 +8,7 @@ export class UsersRolesEntity {
     id: number;
 
     @Column()
-    role: string;
+    roleValue: string;
 
     @ManyToOne(() => UsersEntity, {
         onDelete: 'CASCADE',

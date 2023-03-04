@@ -7,7 +7,6 @@ import {
     NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcryptjs from 'bcryptjs';
@@ -18,7 +17,6 @@ import { Repository } from 'typeorm';
 import * as uuid from 'uuid';
 
 import { PrivacyInfo } from 'src/interfaces/privacy-info.interface';
-import { UserSessionEntity } from 'src/interfaces/session-entity.interface';
 import { UserEntityWithJwtPair } from 'src/interfaces/user-entity-with-jwt-pair.interface';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
@@ -101,7 +99,7 @@ export class AuthService {
     }
 
     private mapUserRolesToRolesValues(userRoles: UsersRolesEntity[]): string[] {
-        return userRoles.map((userRole: UsersRolesEntity): string => userRole.role);
+        return userRoles.map((userRole: UsersRolesEntity): string => userRole.roleValue);
     }
 
     private async createUserRoles(user: UsersEntity, rolesValues: string[]): Promise<UsersRolesEntity[]> {
@@ -109,7 +107,7 @@ export class AuthService {
             rolesValues.map(async (roleValue: string): Promise<UsersRolesEntity> => {
                 const userRole = this.usersRolesRepository.create({
                     user,
-                    role: roleValue,
+                    roleValue,
                 });
 
                 await this.usersRolesRepository.save(userRole);
