@@ -15,7 +15,4 @@ export class RefreshTokensEntity {
     })
     @JoinColumn({ name: 'userId' })
     user: UsersEntity;
-
-    @Column({ type: 'uuid', nullable: false, unique: true })
-    sessionId: string;
 }
