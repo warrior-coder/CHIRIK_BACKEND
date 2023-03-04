@@ -1,10 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository, TreeRepository } from 'typeorm';
 
+import { FilesService } from 'src/files/files.service';
 import { LikesCount } from 'src/interfaces/likes-count.interface';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
+import { CreateRecordDto } from '../dto/create-record.dto';
+import { RecordImagesEntity } from '../entities/record-images.entity';
 import { RecordLikesEntity } from '../entities/record-likes.entity';
 import { RecordsEntity } from '../entities/records.entity';
 
@@ -12,10 +15,100 @@ import { RecordsEntity } from '../entities/records.entity';
 export class RecordsService {
     constructor(
         @InjectRepository(RecordsEntity) private readonly recordsTreeRepository: TreeRepository<RecordsEntity>,
+        @InjectRepository(RecordImagesEntity) private readonly recordImagesRepository: Repository<RecordImagesEntity>,
+        private readonly filesService: FilesService,
         @InjectRepository(RecordLikesEntity) private readonly recordLikesRepository: Repository<RecordLikesEntity>,
     ) {}
 
-    public getRecordById(recordId: string): Promise<RecordsEntity | null> {
+    public getPaginatedAllUserRecords(user: UsersEntity, page: number, limit: number): Promise<RecordsEntity[]> {
+        if (!user) {
+            throw new NotFoundException('user not found');
+        }
+
+        return this.recordsTreeRepository
+            .createQueryBuilder('records')
+            .leftJoinAndSelect('records.images', 'images')
+            .leftJoinAndSelect('records.author', 'author')
+            .where(`records."isComment" = FALSE AND records."authorId" = :userId`, { userId: user.id })
+            .orderBy('records.createdAt', 'DESC')
+            .skip(page * limit)
+            .take(limit)
+            .getMany();
+    }
+
+    public getPaginatedAllRecords(page: number, limit: number) {
+        return this.recordsTreeRepository.find({
+            where: {
+                isComment: false,
+            },
+            relations: {
+                images: true,
+                author: true,
+            },
+            order: {
+                createdAt: 'DESC',
+            },
+            skip: page * limit,
+            take: limit,
+        });
+    }
+
+    public async createRecord(
+        createRecordDto: CreateRecordDto,
+        author: UsersEntity,
+        imageFiles: Array<Express.Multer.File> = [],
+    ): Promise<RecordsEntity> {
+        if (!createRecordDto.text && imageFiles.length === 0) {
+            throw new BadRequestException('record cannot be empty');
+        }
+
+        const tweet: RecordsEntity = this.recordsTreeRepository.create({
+            text: createRecordDto.text,
+            isComment: false,
+            isRetweet: false,
+            author,
+        });
+
+        await this.recordsTreeRepository.save(tweet);
+
+        tweet.images = await Promise.all(
+            imageFiles.map(async (imageFile): Promise<RecordImagesEntity> => {
+                const fileName = await this.filesService.writeImageFile(imageFile);
+                const image = this.recordImagesRepository.create({
+                    name: fileName,
+                    record: tweet,
+                });
+
+                await this.recordImagesRepository.save(image);
+
+                image.record = undefined;
+
+                return image;
+            }),
+        );
+
+        return tweet;
+    }
+
+    public async deleteRecord(tweet: RecordsEntity): Promise<RecordsEntity> {
+        if (!tweet) {
+            throw new NotFoundException('tweet not found');
+        }
+
+        const tweetImages = await this.recordImagesRepository
+            .createQueryBuilder('record_images')
+            .where(`record_images."recordId" = :recordId`, { recordId: tweet.id })
+            .getMany();
+
+        tweetImages.forEach(async (tweetImage: RecordImagesEntity) => {
+            this.filesService.removeImageFile(tweetImage.name);
+            await this.recordImagesRepository.remove(tweetImage);
+        });
+
+        return this.recordsTreeRepository.remove(tweet);
+    }
+
+    public getRecordById(recordId: number): Promise<RecordsEntity | null> {
         return this.recordsTreeRepository.findOne({
             where: {
                 id: recordId,
@@ -27,7 +120,7 @@ export class RecordsService {
         });
     }
 
-    public getRecordByIdOrThrow(recordId: string): Promise<RecordsEntity> {
+    public getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
         const record = this.recordsTreeRepository.findOne({
             where: {
                 id: recordId,
