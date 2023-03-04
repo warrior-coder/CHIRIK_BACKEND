@@ -4,8 +4,8 @@ import { UsersEntity } from 'src/users/entities/users.entity';
 
 @Entity({ name: 'refresh_tokens' })
 export class RefreshTokensEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @Column({ type: 'uuid', nullable: false, unique: true })
     value: string;
@@ -15,7 +15,4 @@ export class RefreshTokensEntity {
     })
     @JoinColumn({ name: 'userId' })
     user: UsersEntity;
-
-    @Column({ type: 'uuid', nullable: false, unique: true })
-    sessionId: string;
 }

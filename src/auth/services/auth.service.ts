@@ -7,7 +7,6 @@ import {
     NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcryptjs from 'bcryptjs';
@@ -18,7 +17,6 @@ import { Repository } from 'typeorm';
 import * as uuid from 'uuid';
 
 import { PrivacyInfo } from 'src/interfaces/privacy-info.interface';
-import { UserSessionEntity } from 'src/interfaces/session-entity.interface';
 import { UserEntityWithJwtPair } from 'src/interfaces/user-entity-with-jwt-pair.interface';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
@@ -33,7 +31,6 @@ export class AuthService {
     constructor(
         private readonly usersService: UsersService,
         private readonly jwtService: JwtService,
-        private readonly configService: ConfigService,
         @InjectRepository(RefreshTokensEntity)
         private readonly refreshTokensRepository: Repository<RefreshTokensEntity>,
         private readonly mailerService: MailerService,
@@ -66,11 +63,7 @@ export class AuthService {
         return signUpUserDto;
     }
 
-    public async registerUser(
-        signUpUserDto: SignUpUserDto,
-        privacyInfo: PrivacyInfo,
-        rolesValues: string[],
-    ): Promise<UserEntityWithJwtPair> {
+    public async registerUser(signUpUserDto: SignUpUserDto, rolesValues: string[]): Promise<UserEntityWithJwtPair> {
         const hashedPassword = await bcryptjs.hash(signUpUserDto.password, 4);
         const user = await this.usersService.createUser({
             ...signUpUserDto,
@@ -78,10 +71,7 @@ export class AuthService {
         });
         const userRoles = await this.createUserRoles(user, rolesValues);
         const accessToken = this.createAccessToken(user, userRoles);
-        const userSession = await this.createUserSession(user, privacyInfo);
-        const refreshToken = await this.createRefreshToken(user, userSession);
-
-        await this.deleteExtraUserSessions(user);
+        const refreshToken = await this.createRefreshToken(user);
 
         return {
             user,
@@ -97,10 +87,8 @@ export class AuthService {
             .where(`users_roles."userId" = :userId`, { userId: user.id })
             .getMany();
         const accessToken = this.createAccessToken(user, userRoles);
-        const userSession = await this.createUserSession(user, privacyInfo);
-        const refreshToken = await this.createRefreshToken(user, userSession);
+        const refreshToken = await this.createRefreshToken(user);
 
-        await this.deleteExtraUserSessions(user);
         await this.sendLoginNotificationEmail(signInUserDto.email, privacyInfo);
 
         return {
@@ -111,7 +99,7 @@ export class AuthService {
     }
 
     private mapUserRolesToRolesValues(userRoles: UsersRolesEntity[]): string[] {
-        return userRoles.map((userRole: UsersRolesEntity): string => userRole.role);
+        return userRoles.map((userRole: UsersRolesEntity): string => userRole.roleValue);
     }
 
     private async createUserRoles(user: UsersEntity, rolesValues: string[]): Promise<UsersRolesEntity[]> {
@@ -119,7 +107,7 @@ export class AuthService {
             rolesValues.map(async (roleValue: string): Promise<UsersRolesEntity> => {
                 const userRole = this.usersRolesRepository.create({
                     user,
-                    role: roleValue,
+                    roleValue,
                 });
 
                 await this.usersRolesRepository.save(userRole);
@@ -150,105 +138,7 @@ export class AuthService {
     public async signOutUser(refreshTokenValue: string): Promise<RefreshTokensEntity> {
         const refreshToken = await this.refreshTokensRepository.findOneBy({ value: refreshTokenValue });
 
-        await this.cacheManager.del(refreshToken.sessionId);
-
         return this.refreshTokensRepository.remove(refreshToken);
-    }
-
-    private async createUserSession(user: UsersEntity, privacyInfo: PrivacyInfo): Promise<UserSessionEntity> {
-        if (!user) {
-            throw new NotFoundException('user not found');
-        }
-
-        const userSession: UserSessionEntity = {
-            id: uuid.v4(),
-            userId: user.id,
-            privacyInfo,
-            loggedAt: new Date(),
-        };
-        const sessionLifetimeInSeconds = this.configService.get<number>('SESSION_LIFETIME_IN_SECONDS');
-
-        await this.cacheManager.set(userSession.id, userSession, sessionLifetimeInSeconds);
-
-        return userSession;
-    }
-
-    public async getAllUserSessions(user: UsersEntity): Promise<UserSessionEntity[]> {
-        if (!user) {
-            throw new NotFoundException('user not found');
-        }
-
-        const usersRefreshTokens = await this.refreshTokensRepository.findBy({ user });
-        const userSessions = this.filterRefreshTokensForSessions(usersRefreshTokens);
-
-        return userSessions;
-    }
-
-    private async filterRefreshTokensForSessions(refreshTokens: RefreshTokensEntity[]): Promise<UserSessionEntity[]> {
-        const sessions = await Promise.all(
-            refreshTokens.map(async (refreshToken: RefreshTokensEntity): Promise<UserSessionEntity> => {
-                const session = await this.cacheManager.get<UserSessionEntity>(refreshToken.sessionId);
-
-                if (!session) {
-                    await this.refreshTokensRepository.delete(refreshToken);
-                }
-
-                return session;
-            }),
-        );
-
-        return sessions.filter((sessions) => Boolean(sessions));
-    }
-
-    private sortSessionsByLoggedAtDesc(sessions: UserSessionEntity[]): UserSessionEntity[] {
-        return sessions.sort((sessionA: UserSessionEntity, sessionB: UserSessionEntity): number => {
-            return new Date(sessionB.loggedAt).getTime() - new Date(sessionA.loggedAt).getTime();
-        });
-    }
-
-    private async getExtraUserSessions(user: UsersEntity): Promise<UserSessionEntity[]> {
-        const allUserSessions = await this.getAllUserSessions(user);
-        const sortedUserSession = this.sortSessionsByLoggedAtDesc(allUserSessions);
-        const maxSessionsCount = this.configService.get<number>('MAX_SESSIONS_COUNT');
-
-        return sortedUserSession.splice(maxSessionsCount);
-    }
-
-    private async deleteExtraUserSessions(user: UsersEntity): Promise<void> {
-        const userSessionsToDelete = await this.getExtraUserSessions(user);
-
-        await Promise.all(
-            userSessionsToDelete.map(async (session: UserSessionEntity): Promise<void> => {
-                await this.deleteSession(session);
-            }),
-        );
-    }
-
-    public async deleteAllUserSessions(user: UsersEntity): Promise<void> {
-        if (!user) {
-            throw new NotFoundException('user not found');
-        }
-
-        const usersRefreshTokens = await this.refreshTokensRepository.findBy({ user });
-
-        await Promise.all(
-            usersRefreshTokens.map(async (refreshToken: RefreshTokensEntity): Promise<void> => {
-                const userSession = await this.getSessionById(refreshToken.sessionId);
-
-                await this.deleteSession(userSession);
-            }),
-        );
-    }
-
-    public getSessionById(sessionId: string): Promise<UserSessionEntity> {
-        return this.cacheManager.get<UserSessionEntity>(sessionId);
-    }
-
-    public async deleteSession(session: UserSessionEntity): Promise<UserSessionEntity> {
-        await this.cacheManager.del(session.id);
-        await this.refreshTokensRepository.delete({ sessionId: session.id });
-
-        return session;
     }
 
     private sendLoginNotificationEmail(userEmail: string, privacyInfo: PrivacyInfo): Promise<SentMessageInfo> {
@@ -257,13 +147,13 @@ export class AuthService {
             subject: `Security alert for ${userEmail}`,
             html: `
                 <div style="font-family:Helvetica;">
-                    <h2>      
+                    <h2>
                         A new sign-in
                     </h2>
                     <p style="font-size:16px;">
                         We noticed a new sign-in to your Twitter Account. If this was you, you don’t need to do anything. If not, take care of your account security.
                     </p>
-                    <div style="font-size:16px; font-style: italic;">      
+                    <div style="font-size:16px; font-style: italic;">
                         Ip Address: ${privacyInfo.ipAddress}
                         <br>
                         User Agent: ${privacyInfo.userAgent}
@@ -281,7 +171,7 @@ export class AuthService {
             subject: `${verificationCode} is your Twitter verification code`,
             html: `
                 <div style="font-family:Helvetica;">
-                    <h2>      
+                    <h2>
                         Confirm your email address
                     </h2>
                     <p style="font-size:16px;">
@@ -290,7 +180,7 @@ export class AuthService {
                     <p style="font-size:16px;">
                         Please enter this verification code to get started on Twitter:
                     </p>
-                    <div style="font-size:32px; font-weight:bold;">      
+                    <div style="font-size:32px; font-weight:bold;">
                         ${verificationCode}
                     </div>
                     <div style="font-family:Helvetica; font-size:14px;">
@@ -328,19 +218,14 @@ export class AuthService {
         return accessToken;
     }
 
-    private createRefreshToken(user: UsersEntity, userSession: UserSessionEntity): Promise<RefreshTokensEntity> {
+    private createRefreshToken(user: UsersEntity): Promise<RefreshTokensEntity> {
         if (!user) {
             throw new NotFoundException('user not found');
-        }
-
-        if (!userSession) {
-            throw new NotFoundException('user session not found');
         }
 
         const refreshToken = this.refreshTokensRepository.create({
             value: uuid.v4(),
             user,
-            sessionId: userSession.id,
         });
 
         return this.refreshTokensRepository.save(refreshToken);
@@ -357,13 +242,7 @@ export class AuthService {
             throw new UnauthorizedException('invalid refresh token');
         }
 
-        const userSession = await this.cacheManager.get<UserSessionEntity>(refreshToken.sessionId);
-
-        if (!userSession) {
-            throw new NotFoundException('user session not found');
-        }
-
-        const user = await this.usersService.getUserById(userSession.userId);
+        const user = await this.usersService.getUserById(refreshToken.user.id);
         const userRoles = await this.usersRolesRepository.findBy({ user });
         const accessToken = this.createAccessToken(user, userRoles);
 

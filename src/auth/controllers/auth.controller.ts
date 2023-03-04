@@ -1,11 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Post, UsePipes } from '@nestjs/common';
 
-import { CurrentUserDecorator } from 'src/decorators/current-user.decorator';
 import { PrivacyInfoDecorator } from 'src/decorators/privacy-info.decorator';
-import { AuthGuard } from 'src/guards/auth.guard';
 import { PrivacyInfo } from 'src/interfaces/privacy-info.interface';
 import { ValidationPipe } from 'src/pipes/validation.pipe';
-import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { SignInUserDto } from '../dto/sign-in-user.dto';
@@ -30,9 +27,7 @@ export class AuthController {
     ) {
         const signUpUserDto = await this.authService.confirmEmailAndGetSignUpUserDto(verificationCodeDto.value);
 
-        console.log(signUpUserDto);
-
-        return this.authService.registerUser(signUpUserDto, privacyInfo, ['user']);
+        return this.authService.registerUser(signUpUserDto, ['user']);
     }
 
     @Post('/sign-in')
@@ -48,25 +43,5 @@ export class AuthController {
     @Get('/new-access-token')
     public getNewAccessToken(@Body() refreshTokenDto: RefreshTokenDto) {
         return this.authService.getNewAccessToken(refreshTokenDto.value);
-    }
-
-    @UseGuards(AuthGuard)
-    @Get('/sessions/all')
-    public getAllUserSessions(@CurrentUserDecorator() currentUser: UsersEntity) {
-        return this.authService.getAllUserSessions(currentUser);
-    }
-
-    @UseGuards(AuthGuard)
-    @Delete('/sessions/:sessionId')
-    public async deleteSession(@Param('sessionId') sessionId: string) {
-        const session = await this.authService.getSessionById(sessionId);
-
-        return this.authService.deleteSession(session);
-    }
-
-    @UseGuards(AuthGuard)
-    @Delete('/sessions/all')
-    public deleteAllUserSession(@CurrentUserDecorator() currentUser: UsersEntity) {
-        return this.authService.deleteAllUserSessions(currentUser);
     }
 }

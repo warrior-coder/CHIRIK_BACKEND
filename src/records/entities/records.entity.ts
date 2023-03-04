@@ -1,46 +1,26 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Tree, TreeChildren, TreeParent } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { RecordImagesEntity } from './record-images.entity';
 
 @Entity({ name: 'records' })
-@Tree('materialized-path')
 export class RecordsEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @Column({ type: 'timestamp', default: () => 'NOW()' })
     createdAt: string;
 
-    @Column({ nullable: false })
-    isComment: boolean;
-
-    @Column({ nullable: false })
-    isRetweet: boolean;
-
     @Column({ type: 'text' })
     text: string;
 
-    @TreeChildren()
-    children: RecordsEntity[];
-
-    @TreeParent({
-        onDelete: 'SET NULL',
-    })
-    parent: RecordsEntity;
-
     @ManyToOne(() => UsersEntity, {
         onDelete: 'SET NULL',
-        eager: true,
+        onUpdate: 'CASCADE',
     })
     author: UsersEntity;
 
-    @OneToMany(() => RecordImagesEntity, (image: RecordImagesEntity) => image.record, {
-        eager: true,
-    })
+    @OneToMany(() => RecordImagesEntity, (image: RecordImagesEntity) => image.record)
     images: RecordImagesEntity[];
-
-    @Column({ default: false })
-    isDeleted: boolean;
 }

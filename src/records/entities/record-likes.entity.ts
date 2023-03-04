@@ -6,8 +6,8 @@ import { RecordsEntity } from './records.entity';
 
 @Entity({ name: 'record_likes' })
 export class RecordLikesEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @ManyToOne(() => RecordsEntity, {
         onDelete: 'CASCADE',
