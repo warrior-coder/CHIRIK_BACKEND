@@ -1,0 +1,29 @@
+version: '3.7'
+
+services:
+    redis:
+        container_name: twitter_redis
+        image: redis:6.2-rc-alpine
+        ports:
+            - 6379:6379
+        environment:
+            REDIS_HOST: localhost
+            REDIS_PORT: 6379
+        volumes:
+            - ./redis_data:/data
+    postgres:
+        container_name: twitter_postgres
+        image: postgres:14
+        ports:
+            - 5432:5432
+        environment:
+            REDIS_HOST: localhost
+            POSTGRES_PORT: 5432
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: root
+            POSTGRES_DB: twitter
+        volumes:
+            - ./pg_data:/var/lib/postgresql/data
+volumes:
+    redis:
+        driver: local
