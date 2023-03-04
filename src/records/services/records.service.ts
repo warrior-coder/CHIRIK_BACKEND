@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 
 import { FilesService } from 'src/files/files.service';
-import { LikesCount } from 'src/interfaces/likes-count.interface';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateRecordDto } from '../dto/create-record.dto';
@@ -153,19 +152,15 @@ export class RecordsService {
         });
     }
 
-    public async getRecordLikesCount(record: RecordsEntity): Promise<LikesCount> {
+    public getRecordLikesCount(record: RecordsEntity): Promise<number> {
         if (!record) {
             throw new NotFoundException('record not found');
         }
 
-        const likesCount = await this.recordLikesRepository.count({
+        return this.recordLikesRepository.count({
             where: {
                 record,
             },
         });
-
-        return {
-            likesCount,
-        };
     }
 }

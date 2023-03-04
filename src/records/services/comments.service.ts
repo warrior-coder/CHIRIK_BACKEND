@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { FilesService } from 'src/files/files.service';
-import { CommentsCount } from 'src/interfaces/comments-count.interface';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';
@@ -70,11 +69,15 @@ export class CommentsService {
         return this.recordsRepository.save(comment);
     }
 
-    public getRecordCommentsCount(record: RecordsEntity): Promise<CommentsCount> {
-        throw new NotFoundException('record not found');
+    public getRecordCommentsCount(record: RecordsEntity): Promise<number> {
+        throw new Error('Method not implemented.');
     }
 
-    public getRecordComments(record: RecordsEntity): Promise<CommentsCount> {
-        throw new NotFoundException('record not found');
+    public getRecordComments(record: RecordsEntity): Promise<RecordCommentsEntity> {
+        throw new Error('Method not implemented.');
+    }
+
+    public clearCommentAndMarkAsDeleted(comment: RecordsEntity) {
+        throw new Error('Method not implemented.');
     }
 }

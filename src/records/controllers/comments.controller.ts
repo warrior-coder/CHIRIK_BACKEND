@@ -27,16 +27,14 @@ export class CommentsController {
     constructor(private readonly recordsService: RecordsService, private readonly commentsService: CommentsService) {}
 
     @Post('/record/:recordId')
-    @UseInterceptors(FilesInterceptor('imageFiles'))
     public async createCommentOnRecord(
         @Body() createCommentDto: CreateCommentDto,
         @Param('recordId', ParseIntPipe) recordId: number,
-        @UploadedFiles() imageFiles: Array<Express.Multer.File>,
         @CurrentUserDecorator() currentUser: UsersEntity,
     ) {
         const record = await this.recordsService.getRecordByIdOrThrow(recordId);
 
-        return this.commentsService.createCommentOnRecord(createCommentDto, currentUser, record, imageFiles);
+        return this.commentsService.createCommentOnRecord(createCommentDto, currentUser, record);
     }
 
     @Get('/count/record/:recordId')
@@ -54,10 +52,10 @@ export class CommentsController {
     }
 
     @Get('/upper-lever/paginate/record/:recordId')
-    public async getUpperLevelCommentsOfRecord(@Param('recordId', ParseIntPipe) recordId: number) {
+    public async getRecordComments(@Param('recordId', ParseIntPipe) recordId: number) {
         const record = await this.recordsService.getRecordById(recordId);
 
-        return this.commentsService.getUpperLevelCommentsOfRecord(record);
+        return this.commentsService.getRecordComments(record);
     }
 
     @Delete('/:commentId')
