@@ -24,7 +24,7 @@ npm run typeorm migration:revert -- -d ./configs/data-source.ts
 PostgreSQL CLI in Docker
 
 ```TEXT
-$ docker exec -i -t postgres sh
+$ docker exec -i -t chirik_postgres sh
 # psql -U postgres -h localhost
 postgres=# \c twitter
 twitter=# \dt
@@ -33,7 +33,7 @@ twitter=# \dt
 Redis CLI in Docker
 
 ```TEXT
-$ docker exec -i -t redis sh
+$ docker exec -i -t chirik_redis sh
 /data # redis-cli
 127.0.0.1:6379> keys *
 ```
