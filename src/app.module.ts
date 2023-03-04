@@ -16,11 +16,7 @@ import { FilesModule } from './files/files.module';
 import { AuthMiddleware } from './middlewares/auth.middleware';
 import { CommentsController } from './records/controllers/comments.controller';
 import { RecordsController } from './records/controllers/records.controller';
-import { TweetsController } from './records/controllers/records.controller';
-import { RetweetsController } from './records/controllers/retweets.controller';
 import { RecordsModule } from './records/records.module';
-import { RestrictionsController } from './restrictions/restrictions.controller';
-import { RestrictionsModule } from './restrictions/restrictions.module';
 import { UsersController } from './users/controllers/users.controller';
 import { UsersModule } from './users/users.module';
 
@@ -40,7 +36,6 @@ import { UsersModule } from './users/users.module';
         AuthModule,
         RecordsModule,
         FilesModule,
-        RestrictionsModule,
     ],
 })
 export class AppModule {
@@ -49,10 +44,7 @@ export class AppModule {
             .apply(AuthMiddleware)
             .forRoutes(
                 UsersController,
-                TweetsController,
                 CommentsController,
-                RetweetsController,
-                RestrictionsController,
                 RecordsController,
                 { path: '/sessions/all', method: RequestMethod.GET },
                 { path: '/sessions/:sessionId', method: RequestMethod.DELETE },

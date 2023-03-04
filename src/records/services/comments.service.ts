@@ -4,7 +4,6 @@ import { Repository, TreeRepository } from 'typeorm';
 
 import { FilesService } from 'src/files/files.service';
 import { CommentsCount } from 'src/interfaces/comments-count.interface';
-import { RestrictionsEntity } from 'src/restrictions/restrictions.entity';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';
@@ -17,46 +16,9 @@ export class CommentsService {
         @InjectRepository(RecordsEntity) private readonly recordsTreeRepository: TreeRepository<RecordsEntity>,
         @InjectRepository(RecordImagesEntity) private readonly recordImagesRepository: Repository<RecordImagesEntity>,
         private readonly filesService: FilesService,
-        @InjectRepository(RestrictionsEntity) private readonly restrictionsRepository: Repository<RestrictionsEntity>,
     ) {}
 
-    public createRestrictionToCreateComments(
-        targetUser: UsersEntity,
-        initiatorUser: UsersEntity,
-    ): Promise<RestrictionsEntity> {
-        if (targetUser.id === initiatorUser.id) {
-            throw new BadRequestException('user cannot restrict himself');
-        }
-
-        const restriction = this.restrictionsRepository.create({
-            targetUser,
-            initiatorUser,
-            action: 'create',
-            subject: 'comments',
-        });
-
-        return this.restrictionsRepository.save(restriction);
-    }
-
-    public createRestrictionToReadComments(
-        targetUser: UsersEntity,
-        initiatorUser: UsersEntity,
-    ): Promise<RestrictionsEntity> {
-        if (targetUser.id === initiatorUser.id) {
-            throw new BadRequestException('user cannot restrict himself');
-        }
-
-        const restriction = this.restrictionsRepository.create({
-            targetUser,
-            initiatorUser,
-            action: 'read',
-            subject: 'comments',
-        });
-
-        return this.restrictionsRepository.save(restriction);
-    }
-
-    public getCommentById(commentId: string): Promise<RecordsEntity | null> {
+    public getCommentById(commentId: number): Promise<RecordsEntity | null> {
         return this.recordsTreeRepository.findOne({
             where: {
                 id: commentId,
@@ -69,7 +31,7 @@ export class CommentsService {
         });
     }
 
-    public async getCommentByIdOrThrow(commentId: string): Promise<RecordsEntity> {
+    public async getCommentByIdOrThrow(commentId: number): Promise<RecordsEntity> {
         const comment = await this.recordsTreeRepository.findOne({
             where: {
                 id: commentId,

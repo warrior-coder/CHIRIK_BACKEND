@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { FilesModule } from 'src/files/files.module';
-import { RestrictionsEntity } from 'src/restrictions/restrictions.entity';
-import { RestrictionsModule } from 'src/restrictions/restrictions.module';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersModule } from 'src/users/users.module';
 
@@ -19,17 +17,10 @@ import { RecordsService } from './services/records.service';
     controllers: [RecordsController, CommentsController],
     providers: [RecordsService, CommentsService],
     imports: [
-        TypeOrmModule.forFeature([
-            RecordsEntity,
-            UsersEntity,
-            RecordImagesEntity,
-            RestrictionsEntity,
-            RecordLikesEntity,
-        ]),
+        TypeOrmModule.forFeature([RecordsEntity, UsersEntity, RecordImagesEntity, RecordLikesEntity]),
         UsersModule,
         RecordsModule,
         FilesModule,
-        RestrictionsModule,
     ],
 })
 export class RecordsModule {}
