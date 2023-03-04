@@ -1,8 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, OneToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
 import { RefreshTokensEntity } from 'src/auth/entities/refresh-tokens.entity';
-
-import { UserProfileImagesEntity } from './users-profile-images.entity';
 
 @Entity({ name: 'users' })
 export class UsersEntity {
@@ -23,7 +21,4 @@ export class UsersEntity {
 
     @OneToMany(() => RefreshTokensEntity, (refreshToken: RefreshTokensEntity) => refreshToken.user)
     refreshTokens: RefreshTokensEntity[];
-
-    @OneToOne(() => UserProfileImagesEntity, (profileImages: UserProfileImagesEntity) => profileImages.user)
-    profileImages: UserProfileImagesEntity;
 }

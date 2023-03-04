@@ -1,5 +1,4 @@
-import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
-import { get } from 'http';
+import { Controller, Delete, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 
 import { CurrentUserDecorator } from 'src/decorators/current-user.decorator';
 import { AuthGuard } from 'src/guards/auth.guard';
@@ -23,22 +22,14 @@ export class UsersController {
     }
 
     @Get('/:userId')
-    public getUserById(@Param('userId') userId: string) {
+    public getUserById(@Param('userId', ParseIntPipe) userId: number) {
         return this.usersService.getUserById(userId);
     }
 
     @Delete('/:userId')
-    public async deleteUser(@Param('userId') userId: string) {
+    public async deleteUser(@Param('userId', ParseIntPipe) userId: number) {
         const user = await this.usersService.getUserById(userId);
 
         return this.usersService.deleteUser(user);
-    }
-
-    @UseGuards(AuthGuard)
-    @Get('/:userId/profile-images')
-    public async getUserProfileImages(@Param('userId') userId: string) {
-        const user = await this.usersService.getUserById(userId);
-
-        return this.usersService.getUserProfileImages(user);
     }
 }
