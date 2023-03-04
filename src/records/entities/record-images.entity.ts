@@ -4,8 +4,8 @@ import { RecordsEntity } from './records.entity';
 
 @Entity({ name: 'record_images' })
 export class RecordImagesEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @Column({ nullable: false })
     name: string;

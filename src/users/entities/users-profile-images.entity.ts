@@ -4,8 +4,8 @@ import { UsersEntity } from './users.entity';
 
 @Entity({ name: 'user_profile_images' })
 export class UserProfileImagesEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @Column({ nullable: false })
     avatarImageName: string;

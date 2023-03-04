@@ -4,8 +4,8 @@ import { UsersEntity } from 'src/users/entities/users.entity';
 
 @Entity({ name: 'restrictions' })
 export class RestrictionsEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @ManyToOne(() => UsersEntity, {
         onDelete: 'CASCADE',

@@ -4,8 +4,8 @@ import { UsersEntity } from 'src/users/entities/users.entity';
 
 @Entity({ name: 'users_roles' })
 export class UsersRolesEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @Column()
     role: string;

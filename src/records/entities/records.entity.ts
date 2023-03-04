@@ -7,8 +7,8 @@ import { RecordImagesEntity } from './record-images.entity';
 @Entity({ name: 'records' })
 @Tree('materialized-path')
 export class RecordsEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @Column({ type: 'timestamp', default: () => 'NOW()' })
     createdAt: string;
