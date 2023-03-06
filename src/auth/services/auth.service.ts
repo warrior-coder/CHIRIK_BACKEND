@@ -1,26 +1,18 @@
 import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
 import { MailerService } from '@nestjs-modules/mailer';
-import {
-    BadRequestException,
-    CACHE_MANAGER,
-    Inject,
-    Injectable,
-    NotFoundException,
-    UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import * as bcryptjs from 'bcryptjs';
-import { Cache } from 'cache-manager';
 import * as crypto from 'crypto';
 import { SentMessageInfo } from 'nodemailer';
 import * as uuid from 'uuid';
 
-import { PrivacyInfo } from 'src/interfaces/privacy-info.interface';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';
 import { UserSessionsEntity } from '../entities/users-session.entity';
+import { PrivacyInfo } from '../interfaces/privacy-info.interface';
 
 @Injectable()
 export class AuthService {
