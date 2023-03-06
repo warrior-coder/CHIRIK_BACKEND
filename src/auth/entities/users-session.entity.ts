@@ -1,4 +1,4 @@
-import { PrivacyInfo } from 'src/interfaces/privacy-info.interface';
+import { PrivacyInfo } from '../interfaces/privacy-info.interface';
 
 export class UserSessionsEntity {
     id: string;

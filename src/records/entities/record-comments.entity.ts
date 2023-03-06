@@ -9,23 +9,23 @@ export class RecordCommentsEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column({ type: 'timestamp', default: () => 'NOW()' })
-    createdAt: string;
-
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: false })
     text: string;
 
+    @Column({ name: 'created_at', type: 'timestamp', default: () => 'NOW()' })
+    createdAt: string;
+
     @ManyToOne(() => UsersEntity, {
-        onDelete: 'SET NULL',
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
     })
-    @JoinColumn({ name: 'authorId' })
+    @JoinColumn({ name: 'author_id' })
     author: UsersEntity;
 
     @ManyToOne(() => RecordsEntity, {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
     })
-    @JoinColumn({ name: 'recordId' })
+    @JoinColumn({ name: 'record_id' })
     record: UsersEntity;
 }

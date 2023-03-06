@@ -1,4 +1,4 @@
-import { Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { UsersEntity } from 'src/users/entities/users.entity';
 
@@ -11,11 +11,15 @@ export class RecordLikesEntity {
 
     @ManyToOne(() => RecordsEntity, {
         onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
     })
+    @JoinColumn({ name: 'record_id' })
     record: RecordsEntity;
 
     @ManyToOne(() => UsersEntity, {
         onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
     })
+    @JoinColumn({ name: 'user_id' })
     user: UsersEntity;
 }
