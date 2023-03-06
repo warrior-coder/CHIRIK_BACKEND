@@ -1,19 +1,15 @@
-import { MailerModule } from '@nestjs-modules/mailer';
-import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { TypeOrmConfig } from 'configs/typeorm-config';
 
-import { JwtConfig } from '../configs/jwt-config';
-import { MailerConfig } from '../configs/mailer-config';
 import { ServeStaticConfig } from '../configs/serve-static-config';
 
 import { AuthModule } from './auth/auth.module';
+import { AuthMiddleware } from './auth/middlewares/auth.middleware';
 import { FilesModule } from './files/files.module';
-import { AuthMiddleware } from './middlewares/auth.middleware';
 import { CommentsController } from './records/controllers/comments.controller';
 import { RecordsController } from './records/controllers/records.controller';
 import { RecordsModule } from './records/records.module';
@@ -29,9 +25,7 @@ import { UsersModule } from './users/users.module';
             isGlobal: true,
         }),
         TypeOrmModule.forRootAsync({ useClass: TypeOrmConfig }),
-        MailerModule.forRootAsync({ useClass: MailerConfig }),
         ServeStaticModule.forRootAsync({ useClass: ServeStaticConfig }),
-        JwtModule.registerAsync({ useClass: JwtConfig }),
         UsersModule,
         AuthModule,
         RecordsModule,
@@ -40,15 +34,6 @@ import { UsersModule } from './users/users.module';
 })
 export class AppModule {
     public configure(consumer: MiddlewareConsumer) {
-        consumer
-            .apply(AuthMiddleware)
-            .forRoutes(
-                UsersController,
-                CommentsController,
-                RecordsController,
-                { path: '/sessions/all', method: RequestMethod.GET },
-                { path: '/sessions/:sessionId', method: RequestMethod.DELETE },
-                { path: '/sessions/all', method: RequestMethod.DELETE },
-            );
+        consumer.apply(AuthMiddleware).forRoutes(UsersController, CommentsController, RecordsController);
     }
 }

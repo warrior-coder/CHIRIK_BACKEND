@@ -1,42 +1,25 @@
+import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
 import { MailerService } from '@nestjs-modules/mailer';
-import {
-    BadRequestException,
-    CACHE_MANAGER,
-    Inject,
-    Injectable,
-    NotFoundException,
-    UnauthorizedException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import * as bcryptjs from 'bcryptjs';
-import { Cache } from 'cache-manager';
 import * as crypto from 'crypto';
 import { SentMessageInfo } from 'nodemailer';
-import { Repository } from 'typeorm';
 import * as uuid from 'uuid';
 
-import { PrivacyInfo } from 'src/interfaces/privacy-info.interface';
-import { UserEntityWithJwtPair } from 'src/interfaces/user-entity-with-jwt-pair.interface';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';
-import { RefreshTokensEntity } from '../entities/refresh-tokens.entity';
-import { UsersRolesEntity } from '../entities/users-roles.entity';
+import { UserSessionsEntity } from '../entities/users-session.entity';
+import { PrivacyInfo } from '../interfaces/privacy-info.interface';
 
 @Injectable()
 export class AuthService {
     constructor(
         private readonly usersService: UsersService,
-        private readonly jwtService: JwtService,
-        @InjectRepository(RefreshTokensEntity)
-        private readonly refreshTokensRepository: Repository<RefreshTokensEntity>,
         private readonly mailerService: MailerService,
-        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-        @InjectRepository(UsersRolesEntity)
-        private readonly usersRolesRepository: Repository<UsersRolesEntity>,
+        @InjectRedis() private readonly redisRepository: Redis,
     ) {}
 
     public async signUpUser(signUpUserDto: SignUpUserDto): Promise<SentMessageInfo> {
@@ -46,77 +29,59 @@ export class AuthService {
         }
 
         const verificationCode = crypto.randomBytes(3).toString('hex');
-        await this.cacheManager.set(verificationCode, signUpUserDto);
+        await this.redisRepository.set(verificationCode, JSON.stringify(signUpUserDto), 'EX', 1 * 60 * 60); // s: 24h * 60m * 60s
 
         return this.sendConfirmationEmail(signUpUserDto.email, verificationCode);
     }
 
     public async confirmEmailAndGetSignUpUserDto(verificationCode: string): Promise<SignUpUserDto> {
-        const signUpUserDto = await this.cacheManager.get<SignUpUserDto>(verificationCode);
+        const signUpUserDto: SignUpUserDto = JSON.parse(await this.redisRepository.get(verificationCode));
 
         if (!signUpUserDto) {
             throw new BadRequestException('invalid verification code');
         }
 
-        await this.cacheManager.del(verificationCode);
+        await this.redisRepository.del(verificationCode);
 
         return signUpUserDto;
     }
 
-    public async registerUser(signUpUserDto: SignUpUserDto, rolesValues: string[]): Promise<UserEntityWithJwtPair> {
+    public async registerUser(signUpUserDto: SignUpUserDto, privacyInfo: PrivacyInfo): Promise<any> {
         const hashedPassword = await bcryptjs.hash(signUpUserDto.password, 4);
         const user = await this.usersService.createUser({
             ...signUpUserDto,
             password: hashedPassword,
         });
-        const userRoles = await this.createUserRoles(user, rolesValues);
-        const accessToken = this.createAccessToken(user, userRoles);
-        const refreshToken = await this.createRefreshToken(user);
+        const userSession = await this.createUserSession(user, privacyInfo);
 
         return {
             user,
-            accessToken,
-            refreshToken: refreshToken.value,
+            userSession,
         };
     }
 
-    public async signInUser(signInUserDto: SignInUserDto, privacyInfo: PrivacyInfo): Promise<UserEntityWithJwtPair> {
+    public async signInUser(signInUserDto: SignInUserDto, privacyInfo: PrivacyInfo): Promise<any> {
         const user = await this.validateUser(signInUserDto);
-        const userRoles = await this.usersRolesRepository
-            .createQueryBuilder('users_roles')
-            .where(`users_roles."userId" = :userId`, { userId: user.id })
-            .getMany();
-        const accessToken = this.createAccessToken(user, userRoles);
-        const refreshToken = await this.createRefreshToken(user);
+        const userSession = await this.createUserSession(user, privacyInfo);
 
         await this.sendLoginNotificationEmail(signInUserDto.email, privacyInfo);
 
         return {
             user,
-            accessToken,
-            refreshToken: refreshToken.value,
+            userSession,
         };
     }
 
-    private mapUserRolesToRolesValues(userRoles: UsersRolesEntity[]): string[] {
-        return userRoles.map((userRole: UsersRolesEntity): string => userRole.roleValue);
-    }
+    private async createUserSession(user: UsersEntity, privacyInfo: PrivacyInfo): Promise<UserSessionsEntity> {
+        const userSession: UserSessionsEntity = {
+            id: uuid.v4(),
+            userId: user.id,
+            privacyInfo,
+        };
 
-    private async createUserRoles(user: UsersEntity, rolesValues: string[]): Promise<UsersRolesEntity[]> {
-        const userRoles: UsersRolesEntity[] = await Promise.all(
-            rolesValues.map(async (roleValue: string): Promise<UsersRolesEntity> => {
-                const userRole = this.usersRolesRepository.create({
-                    user,
-                    roleValue,
-                });
+        await this.redisRepository.set(userSession.id, JSON.stringify(userSession), 'EX', 24 * 60 * 60); // s: 24h * 60m * 60s
 
-                await this.usersRolesRepository.save(userRole);
-
-                return userRole;
-            }),
-        );
-
-        return userRoles;
+        return userSession;
     }
 
     public async validateUser(signInUserDto: SignInUserDto): Promise<UsersEntity> {
@@ -135,10 +100,8 @@ export class AuthService {
         return user;
     }
 
-    public async signOutUser(refreshTokenValue: string): Promise<RefreshTokensEntity> {
-        const refreshToken = await this.refreshTokensRepository.findOneBy({ value: refreshTokenValue });
-
-        return this.refreshTokensRepository.remove(refreshToken);
+    public async signOutUser(currentSessionId: string): Promise<void> {
+        await this.redisRepository.del(currentSessionId);
     }
 
     private sendLoginNotificationEmail(userEmail: string, privacyInfo: PrivacyInfo): Promise<SentMessageInfo> {
@@ -201,57 +164,5 @@ export class AuthService {
             `,
             from: 'Twitter <alex-mailer@mail.ru>',
         });
-    }
-
-    private createAccessToken(user: UsersEntity, userRoles: UsersRolesEntity[]): string {
-        if (!user) {
-            throw new NotFoundException('user not found');
-        }
-
-        const rolesValues = this.mapUserRolesToRolesValues(userRoles);
-        const payload = {
-            userId: user.id,
-            userRolesValues: rolesValues,
-        };
-        const accessToken = this.jwtService.sign(payload);
-
-        return accessToken;
-    }
-
-    private createRefreshToken(user: UsersEntity): Promise<RefreshTokensEntity> {
-        if (!user) {
-            throw new NotFoundException('user not found');
-        }
-
-        const refreshToken = this.refreshTokensRepository.create({
-            value: uuid.v4(),
-            user,
-        });
-
-        return this.refreshTokensRepository.save(refreshToken);
-    }
-
-    public async getNewAccessToken(refreshTokenValue: string) {
-        const refreshToken = await this.refreshTokensRepository.findOneBy({ value: refreshTokenValue });
-
-        if (!refreshToken) {
-            throw new UnauthorizedException('refresh token not exist');
-        }
-
-        if (refreshToken.value !== refreshTokenValue) {
-            throw new UnauthorizedException('invalid refresh token');
-        }
-
-        const user = await this.usersService.getUserById(refreshToken.user.id);
-        const userRoles = await this.usersRolesRepository.findBy({ user });
-        const accessToken = this.createAccessToken(user, userRoles);
-
-        refreshToken.value = uuid.v4();
-        this.refreshTokensRepository.save(refreshToken);
-
-        return {
-            accessToken,
-            refreshToken: refreshToken.value,
-        };
     }
 }

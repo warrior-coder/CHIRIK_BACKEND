@@ -1,3 +1,4 @@
+import { AuthGuard } from '@app/auth';
 import {
     Body,
     Controller,
@@ -14,7 +15,6 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 
 import { CurrentUserDecorator } from 'src/decorators/current-user.decorator';
-import { AuthGuard } from 'src/guards/auth.guard';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
 
