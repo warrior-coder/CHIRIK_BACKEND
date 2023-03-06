@@ -25,6 +25,7 @@ import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';
 import { RefreshTokensEntity } from '../entities/refresh-tokens.entity';
 import { UsersRolesEntity } from '../entities/users-roles.entity';
+import { UserSessionsEntity } from '../entities/users-session.entity';
 
 @Injectable()
 export class AuthService {
@@ -89,6 +90,9 @@ export class AuthService {
         const accessToken = this.createAccessToken(user, userRoles);
         const refreshToken = await this.createRefreshToken(user);
 
+        const userSession = await this.createUserSession(user, privacyInfo);
+        console.log(userSession.id);
+
         await this.sendLoginNotificationEmail(signInUserDto.email, privacyInfo);
 
         return {
@@ -96,6 +100,18 @@ export class AuthService {
             accessToken,
             refreshToken: refreshToken.value,
         };
+    }
+
+    private async createUserSession(user: UsersEntity, privacyInfo: PrivacyInfo): Promise<UserSessionsEntity> {
+        const userSession: UserSessionsEntity = {
+            id: uuid.v4(),
+            userId: user.id,
+            privacyInfo,
+        };
+
+        await this.cacheManager.set(userSession.id, userSession, 10 * 60);
+
+        return userSession;
     }
 
     private mapUserRolesToRolesValues(userRoles: UsersRolesEntity[]): string[] {
