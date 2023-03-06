@@ -81,7 +81,7 @@ export class AuthService {
         };
     }
 
-    public async signInUser(signInUserDto: SignInUserDto, privacyInfo: PrivacyInfo): Promise<UserEntityWithJwtPair> {
+    public async signInUser(signInUserDto: SignInUserDto, privacyInfo: PrivacyInfo): Promise<any> {
         const user = await this.validateUser(signInUserDto);
         const userRoles = await this.usersRolesRepository
             .createQueryBuilder('users_roles')
@@ -99,6 +99,7 @@ export class AuthService {
             user,
             accessToken,
             refreshToken: refreshToken.value,
+            userSession,
         };
     }
 

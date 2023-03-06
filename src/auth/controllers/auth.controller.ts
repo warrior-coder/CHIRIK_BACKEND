@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UsePipes } from '@nestjs/common';
+import { Response } from 'express';
 
 import { PrivacyInfoDecorator } from 'src/decorators/privacy-info.decorator';
 import { PrivacyInfo } from 'src/interfaces/privacy-info.interface';
@@ -31,8 +32,20 @@ export class AuthController {
     }
 
     @Post('/sign-in')
-    public signInUser(@Body() signInUserDto: SignInUserDto, @PrivacyInfoDecorator() privacyInfo: PrivacyInfo) {
-        return this.authService.signInUser(signInUserDto, privacyInfo);
+    public async signInUser(
+        @Body() signInUserDto: SignInUserDto,
+        @PrivacyInfoDecorator() privacyInfo: PrivacyInfo,
+        @Res() response: Response,
+    ) {
+        const obj = await this.authService.signInUser(signInUserDto, privacyInfo);
+
+        response.cookie('SESSION_ID', obj.userSession.id, {
+            expires: new Date(new Date().getTime() + 10 * 60 * 1000),
+            sameSite: 'strict',
+            httpOnly: true,
+        });
+
+        return response.send(obj);
     }
 
     @Post('/sign-out')
