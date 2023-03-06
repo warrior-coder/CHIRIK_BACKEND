@@ -1,5 +1,6 @@
 import { Controller, Delete, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 
+import { CookiesDecorator } from 'src/decorators/cookies.decorator';
 import { AuthGuard } from 'src/guards/auth.guard';
 
 import { UsersService } from '../services/users.service';
@@ -10,7 +11,9 @@ export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
     @Get('/all')
-    public getAllUsers() {
+    public getAllUsers(@CookiesDecorator() cookies: any) {
+        console.log(cookies);
+
         return this.usersService.getAllUsers();
     }
 
