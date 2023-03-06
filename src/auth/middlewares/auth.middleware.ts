@@ -1,6 +1,5 @@
 import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
-import { CACHE_MANAGER, Inject, Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
-import { Cache } from 'cache-manager';
+import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { Response, NextFunction } from 'express';
 
 import { UserSessionsEntity } from 'src/auth/entities/users-session.entity';
