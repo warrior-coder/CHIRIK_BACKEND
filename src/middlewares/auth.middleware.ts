@@ -1,3 +1,4 @@
+import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
 import { CACHE_MANAGER, Inject, Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { Response, NextFunction } from 'express';
@@ -8,10 +9,7 @@ import { UsersService } from 'src/users/services/users.service';
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
-    constructor(
-        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-        private readonly usersService: UsersService,
-    ) {}
+    constructor(private readonly usersService: UsersService, @InjectRedis() private readonly redisRepository: Redis) {}
 
     public async use(request: RequestWithUser, response: Response, next: NextFunction) {
         const sessionId = request.cookies['SESSION_ID'];
@@ -20,7 +18,7 @@ export class AuthMiddleware implements NestMiddleware {
             throw new UnauthorizedException('No SESSION_ID in cookies.');
         }
 
-        const userSession: UserSessionsEntity = await this.cacheManager.get<UserSessionsEntity>(sessionId);
+        const userSession: UserSessionsEntity = JSON.parse(await this.redisRepository.get(sessionId));
 
         if (userSession) {
             const currentUser = await this.usersService.getUserById(userSession.userId);

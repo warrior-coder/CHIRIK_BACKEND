@@ -1,8 +1,9 @@
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { CacheModule, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { CacheConfig } from 'configs/cache-config';
+import { RedisConfig } from 'configs/redis-config';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersModule } from 'src/users/users.module';
 
@@ -18,7 +19,7 @@ import { AuthService } from './services/auth.service';
         UsersModule,
         TypeOrmModule.forFeature([RefreshTokensEntity, UsersEntity, UsersRolesEntity]),
         MailerModule,
-        CacheModule.registerAsync({ useClass: CacheConfig }),
+        RedisModule.forRootAsync({ useClass: RedisConfig }),
     ],
 })
 export class AuthModule {}

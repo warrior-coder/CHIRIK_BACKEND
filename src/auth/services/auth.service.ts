@@ -1,3 +1,4 @@
+import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
 import { MailerService } from '@nestjs-modules/mailer';
 import {
     BadRequestException,
@@ -26,7 +27,7 @@ export class AuthService {
     constructor(
         private readonly usersService: UsersService,
         private readonly mailerService: MailerService,
-        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+        @InjectRedis() private readonly redisRepository: Redis,
     ) {}
 
     public async signUpUser(signUpUserDto: SignUpUserDto): Promise<SentMessageInfo> {
@@ -36,19 +37,19 @@ export class AuthService {
         }
 
         const verificationCode = crypto.randomBytes(3).toString('hex');
-        await this.cacheManager.set(verificationCode, signUpUserDto, 1 * 60 * 60);
+        await this.redisRepository.set(verificationCode, JSON.stringify(signUpUserDto), 'EX', 1 * 60 * 60); // s: 24h * 60m * 60s
 
         return this.sendConfirmationEmail(signUpUserDto.email, verificationCode);
     }
 
     public async confirmEmailAndGetSignUpUserDto(verificationCode: string): Promise<SignUpUserDto> {
-        const signUpUserDto = await this.cacheManager.get<SignUpUserDto>(verificationCode);
+        const signUpUserDto: SignUpUserDto = JSON.parse(await this.redisRepository.get(verificationCode));
 
         if (!signUpUserDto) {
             throw new BadRequestException('invalid verification code');
         }
 
-        await this.cacheManager.del(verificationCode);
+        await this.redisRepository.del(verificationCode);
 
         return signUpUserDto;
     }
@@ -86,7 +87,7 @@ export class AuthService {
             privacyInfo,
         };
 
-        await this.cacheManager.set(userSession.id, userSession, 24 * 60 * 60); // s: 24h * 60m * 60s
+        await this.redisRepository.set(userSession.id, JSON.stringify(userSession), 'EX', 24 * 60 * 60); // s: 24h * 60m * 60s
 
         return userSession;
     }
@@ -107,8 +108,8 @@ export class AuthService {
         return user;
     }
 
-    public signOutUser(currentSessionId: string): Promise<void> {
-        return this.cacheManager.del(currentSessionId);
+    public async signOutUser(currentSessionId: string): Promise<void> {
+        await this.redisRepository.del(currentSessionId);
     }
 
     private sendLoginNotificationEmail(userEmail: string, privacyInfo: PrivacyInfo): Promise<SentMessageInfo> {

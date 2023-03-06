@@ -1,11 +1,11 @@
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { CacheModule, MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { CacheConfig } from 'configs/cache-config';
+import { RedisConfig } from 'configs/redis-config';
 import { TypeOrmConfig } from 'configs/typeorm-config';
 
 import { MailerConfig } from '../configs/mailer-config';
@@ -31,7 +31,7 @@ import { UsersModule } from './users/users.module';
         TypeOrmModule.forRootAsync({ useClass: TypeOrmConfig }),
         MailerModule.forRootAsync({ useClass: MailerConfig }),
         ServeStaticModule.forRootAsync({ useClass: ServeStaticConfig }),
-        CacheModule.registerAsync({ useClass: CacheConfig }),
+        RedisModule.forRootAsync({ useClass: RedisConfig }),
         UsersModule,
         AuthModule,
         RecordsModule,
