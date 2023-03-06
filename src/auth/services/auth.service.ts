@@ -7,37 +7,26 @@ import {
     NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
 import * as bcryptjs from 'bcryptjs';
 import { Cache } from 'cache-manager';
 import * as crypto from 'crypto';
 import { SentMessageInfo } from 'nodemailer';
-import { Repository } from 'typeorm';
 import * as uuid from 'uuid';
 
 import { PrivacyInfo } from 'src/interfaces/privacy-info.interface';
-import { UserEntityWithJwtPair } from 'src/interfaces/user-entity-with-jwt-pair.interface';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';
-import { RefreshTokensEntity } from '../entities/refresh-tokens.entity';
-import { UsersRolesEntity } from '../entities/users-roles.entity';
 import { UserSessionsEntity } from '../entities/users-session.entity';
 
 @Injectable()
 export class AuthService {
     constructor(
         private readonly usersService: UsersService,
-        private readonly jwtService: JwtService,
-        @InjectRepository(RefreshTokensEntity)
-        private readonly refreshTokensRepository: Repository<RefreshTokensEntity>,
         private readonly mailerService: MailerService,
         @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-        @InjectRepository(UsersRolesEntity)
-        private readonly usersRolesRepository: Repository<UsersRolesEntity>,
     ) {}
 
     public async signUpUser(signUpUserDto: SignUpUserDto): Promise<SentMessageInfo> {

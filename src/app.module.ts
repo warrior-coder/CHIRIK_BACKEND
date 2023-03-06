@@ -8,7 +8,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheConfig } from 'configs/cache-config';
 import { TypeOrmConfig } from 'configs/typeorm-config';
 
-import { JwtConfig } from '../configs/jwt-config';
 import { MailerConfig } from '../configs/mailer-config';
 import { ServeStaticConfig } from '../configs/serve-static-config';
 
@@ -32,7 +31,6 @@ import { UsersModule } from './users/users.module';
         TypeOrmModule.forRootAsync({ useClass: TypeOrmConfig }),
         MailerModule.forRootAsync({ useClass: MailerConfig }),
         ServeStaticModule.forRootAsync({ useClass: ServeStaticConfig }),
-        JwtModule.registerAsync({ useClass: JwtConfig }),
         CacheModule.registerAsync({ useClass: CacheConfig }),
         UsersModule,
         AuthModule,
