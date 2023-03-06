@@ -47,7 +47,7 @@ export class AuthService {
         }
 
         const verificationCode = crypto.randomBytes(3).toString('hex');
-        await this.cacheManager.set(verificationCode, signUpUserDto);
+        await this.cacheManager.set(verificationCode, signUpUserDto, 1 * 60 * 60);
 
         return this.sendConfirmationEmail(signUpUserDto.email, verificationCode);
     }
@@ -64,41 +64,28 @@ export class AuthService {
         return signUpUserDto;
     }
 
-    public async registerUser(signUpUserDto: SignUpUserDto, rolesValues: string[]): Promise<UserEntityWithJwtPair> {
+    public async registerUser(signUpUserDto: SignUpUserDto, privacyInfo: PrivacyInfo): Promise<any> {
         const hashedPassword = await bcryptjs.hash(signUpUserDto.password, 4);
         const user = await this.usersService.createUser({
             ...signUpUserDto,
             password: hashedPassword,
         });
-        const userRoles = await this.createUserRoles(user, rolesValues);
-        const accessToken = this.createAccessToken(user, userRoles);
-        const refreshToken = await this.createRefreshToken(user);
+        const userSession = await this.createUserSession(user, privacyInfo);
 
         return {
             user,
-            accessToken,
-            refreshToken: refreshToken.value,
+            userSession,
         };
     }
 
     public async signInUser(signInUserDto: SignInUserDto, privacyInfo: PrivacyInfo): Promise<any> {
         const user = await this.validateUser(signInUserDto);
-        const userRoles = await this.usersRolesRepository
-            .createQueryBuilder('users_roles')
-            .where(`users_roles."userId" = :userId`, { userId: user.id })
-            .getMany();
-        const accessToken = this.createAccessToken(user, userRoles);
-        const refreshToken = await this.createRefreshToken(user);
-
         const userSession = await this.createUserSession(user, privacyInfo);
-        console.log(userSession.id);
 
         await this.sendLoginNotificationEmail(signInUserDto.email, privacyInfo);
 
         return {
             user,
-            accessToken,
-            refreshToken: refreshToken.value,
             userSession,
         };
     }
@@ -110,30 +97,9 @@ export class AuthService {
             privacyInfo,
         };
 
-        await this.cacheManager.set(userSession.id, userSession, 10 * 60);
+        await this.cacheManager.set(userSession.id, userSession, 24 * 60 * 60); // s: 24h * 60m * 60s
 
         return userSession;
-    }
-
-    private mapUserRolesToRolesValues(userRoles: UsersRolesEntity[]): string[] {
-        return userRoles.map((userRole: UsersRolesEntity): string => userRole.roleValue);
-    }
-
-    private async createUserRoles(user: UsersEntity, rolesValues: string[]): Promise<UsersRolesEntity[]> {
-        const userRoles: UsersRolesEntity[] = await Promise.all(
-            rolesValues.map(async (roleValue: string): Promise<UsersRolesEntity> => {
-                const userRole = this.usersRolesRepository.create({
-                    user,
-                    roleValue,
-                });
-
-                await this.usersRolesRepository.save(userRole);
-
-                return userRole;
-            }),
-        );
-
-        return userRoles;
     }
 
     public async validateUser(signInUserDto: SignInUserDto): Promise<UsersEntity> {
@@ -152,10 +118,8 @@ export class AuthService {
         return user;
     }
 
-    public async signOutUser(refreshTokenValue: string): Promise<RefreshTokensEntity> {
-        const refreshToken = await this.refreshTokensRepository.findOneBy({ value: refreshTokenValue });
-
-        return this.refreshTokensRepository.remove(refreshToken);
+    public signOutUser(currentSessionId: string): Promise<void> {
+        return this.cacheManager.del(currentSessionId);
     }
 
     private sendLoginNotificationEmail(userEmail: string, privacyInfo: PrivacyInfo): Promise<SentMessageInfo> {
@@ -218,57 +182,5 @@ export class AuthService {
             `,
             from: 'Twitter <alex-mailer@mail.ru>',
         });
-    }
-
-    private createAccessToken(user: UsersEntity, userRoles: UsersRolesEntity[]): string {
-        if (!user) {
-            throw new NotFoundException('user not found');
-        }
-
-        const rolesValues = this.mapUserRolesToRolesValues(userRoles);
-        const payload = {
-            userId: user.id,
-            userRolesValues: rolesValues,
-        };
-        const accessToken = this.jwtService.sign(payload);
-
-        return accessToken;
-    }
-
-    private createRefreshToken(user: UsersEntity): Promise<RefreshTokensEntity> {
-        if (!user) {
-            throw new NotFoundException('user not found');
-        }
-
-        const refreshToken = this.refreshTokensRepository.create({
-            value: uuid.v4(),
-            user,
-        });
-
-        return this.refreshTokensRepository.save(refreshToken);
-    }
-
-    public async getNewAccessToken(refreshTokenValue: string) {
-        const refreshToken = await this.refreshTokensRepository.findOneBy({ value: refreshTokenValue });
-
-        if (!refreshToken) {
-            throw new UnauthorizedException('refresh token not exist');
-        }
-
-        if (refreshToken.value !== refreshTokenValue) {
-            throw new UnauthorizedException('invalid refresh token');
-        }
-
-        const user = await this.usersService.getUserById(refreshToken.user.id);
-        const userRoles = await this.usersRolesRepository.findBy({ user });
-        const accessToken = this.createAccessToken(user, userRoles);
-
-        refreshToken.value = uuid.v4();
-        this.refreshTokensRepository.save(refreshToken);
-
-        return {
-            accessToken,
-            refreshToken: refreshToken.value,
-        };
     }
 }

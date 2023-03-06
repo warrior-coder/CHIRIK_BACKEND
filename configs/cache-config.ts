@@ -8,7 +8,6 @@ export class CacheConfig implements CacheOptionsFactory {
 
     public createCacheOptions(): CacheModuleOptions {
         return {
-            ttl: this.configService.get<number>('CACHE_TTL_IN_SECONDS'),
             store: redisStore as unknown as CacheStore,
             port: this.configService.get<number>('REDIS_PORT'),
         };

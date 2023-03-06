@@ -1,10 +1,11 @@
 import { MailerModule } from '@nestjs-modules/mailer';
-import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import { CacheModule, MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { CacheConfig } from 'configs/cache-config';
 import { TypeOrmConfig } from 'configs/typeorm-config';
 
 import { JwtConfig } from '../configs/jwt-config';
@@ -32,6 +33,7 @@ import { UsersModule } from './users/users.module';
         MailerModule.forRootAsync({ useClass: MailerConfig }),
         ServeStaticModule.forRootAsync({ useClass: ServeStaticConfig }),
         JwtModule.registerAsync({ useClass: JwtConfig }),
+        CacheModule.registerAsync({ useClass: CacheConfig }),
         UsersModule,
         AuthModule,
         RecordsModule,
@@ -40,15 +42,6 @@ import { UsersModule } from './users/users.module';
 })
 export class AppModule {
     public configure(consumer: MiddlewareConsumer) {
-        consumer
-            .apply(AuthMiddleware)
-            .forRoutes(
-                UsersController,
-                CommentsController,
-                RecordsController,
-                { path: '/sessions/all', method: RequestMethod.GET },
-                { path: '/sessions/:sessionId', method: RequestMethod.DELETE },
-                { path: '/sessions/all', method: RequestMethod.DELETE },
-            );
+        consumer.apply(AuthMiddleware).forRoutes(UsersController, CommentsController, RecordsController);
     }
 }
