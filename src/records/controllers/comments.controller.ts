@@ -1,20 +1,7 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    ParseIntPipe,
-    Post,
-    Query,
-    UploadedFiles,
-    UseGuards,
-    UseInterceptors,
-} from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { AuthGuard } from '@app/auth';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
 
 import { CurrentUserDecorator } from 'src/decorators/current-user.decorator';
-import { AuthGuard } from 'src/guards/auth.guard';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';
