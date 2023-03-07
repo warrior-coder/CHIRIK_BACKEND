@@ -64,7 +64,7 @@ export class CommentsService {
         const insertedRows: RecordCommentsEntity[] = await this.recordsRepository.query(
             `
                 INSERT INTO record_comments("text", author_id, record_id)
-                VALUES ($1, $2, $3)
+                VALUES ($1::TEXT, $2::INT, $3::INT)
                 RETURNING id, "text", author_id, record_id;
             `,
             [createCommentDto.text, author.id, record.id],
@@ -74,15 +74,40 @@ export class CommentsService {
         return recordComment;
     }
 
-    public getRecordCommentsCount(record: RecordsEntity): Promise<number> {
-        throw new Error('Method not implemented.');
+    public async getRecordCommentsCount(record: RecordsEntity): Promise<number> {
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        const queryResultRows = await this.recordsRepository.query(
+            `
+                SELECT COUNT(*) AS record_comments_count
+                FROM record_comments AS rc
+                WHERE rc.record_id = $1::INT;
+            `,
+            [record.id],
+        );
+        const recordCommentsCount: number = parseInt(queryResultRows[0]['record_comments_count']);
+
+        return recordCommentsCount;
     }
 
-    public getRecordComments(record: RecordsEntity): Promise<RecordCommentsEntity> {
-        throw new Error('Method not implemented.');
+    public getRecordComments(record: RecordsEntity): Promise<RecordCommentsEntity[]> {
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        return this.recordsRepository.query(
+            `
+                SELECT rc.*
+                FROM record_comments AS rc
+                WHERE rc.record_id = $1::INT;
+            `,
+            [record.id],
+        );
     }
 
-    public clearCommentAndMarkAsDeleted(comment: RecordsEntity) {
+    public deleteComment(comment: RecordsEntity) {
         throw new Error('Method not implemented.');
     }
 }

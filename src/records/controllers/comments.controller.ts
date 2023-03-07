@@ -49,6 +49,6 @@ export class CommentsController {
     public async deleteCommentById(@Param('commentId', ParseIntPipe) commentId: number) {
         const comment = await this.commentsService.getCommentById(commentId);
 
-        return this.commentsService.clearCommentAndMarkAsDeleted(comment);
+        return this.commentsService.deleteComment(comment);
     }
 }

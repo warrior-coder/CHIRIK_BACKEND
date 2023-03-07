@@ -102,7 +102,7 @@ export class RecordsService {
             const insertedRows: RecordImagesEntity[] = await this.recordsRepository.query(
                 `
                     INSERT INTO record_images(file_name, record_id)
-                    VALUES ($1, $2)
+                    VALUES ($1, $2::INT)
                     RETURNING id, file_name, record_id;
                 `,
                 [fileName, record.id],
@@ -244,7 +244,7 @@ export class RecordsService {
             `
                 SELECT COUNT(*) AS record_likes_count
                 FROM record_likes AS rl
-                WHERE rl.record_id = $1;
+                WHERE rl.record_id = $1::INT;
             `,
             [record.id],
         );
