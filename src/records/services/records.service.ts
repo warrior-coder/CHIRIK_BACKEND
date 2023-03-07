@@ -229,15 +229,21 @@ export class RecordsService {
         );
     }
 
-    public getRecordLikesCount(record: RecordsEntity): Promise<number> {
+    public async getRecordLikesCount(record: RecordsEntity): Promise<number> {
         if (!record) {
-            throw new NotFoundException('record not found');
+            throw new NotFoundException('Record not found.');
         }
 
-        return this.recordLikesRepository.count({
-            where: {
-                record,
-            },
-        });
+        const queryResultRows = await this.recordsRepository.query(
+            `
+                SELECT COUNT(*) AS record_likes_count
+                FROM record_likes AS rl
+                WHERE rl.record_id = $1;
+            `,
+            [record.id],
+        );
+        const recordLikesCount: number = parseInt(queryResultRows[0]['record_likes_count']);
+
+        return recordLikesCount;
     }
 }
