@@ -10,7 +10,10 @@ export class UsersService {
     constructor(@InjectRepository(UsersEntity) private readonly usersRepository: Repository<UsersEntity>) {}
 
     public getAllUsers(): Promise<UsersEntity[]> {
-        return this.usersRepository.find();
+        return this.usersRepository.query(`
+            SELECT u.*
+            FROM users AS u;
+        `);
     }
 
     public async getUserById(userId: number): Promise<UsersEntity | null> {
@@ -51,10 +54,18 @@ export class UsersService {
         return user;
     }
 
-    public createUser(createUserDto: CreateUserDto): Promise<UsersEntity> {
-        const user = this.usersRepository.create(createUserDto);
+    public async createUser(createUserDto: CreateUserDto): Promise<UsersEntity> {
+        const insertedRows: UsersEntity[] = await this.usersRepository.query(
+            `
+                INSERT INTO users("name", email, "password")
+                VALUES ($1::VARCHAR(32), $2::VARCHAR(32), $3::VARCHAR(32))
+                RETURNING id, "name", email, "password";
+            `,
+            [createUserDto.name, createUserDto.email, createUserDto.password],
+        );
+        const user: UsersEntity = insertedRows[0];
 
-        return this.usersRepository.save(user);
+        return user;
     }
 
     public deleteUser(user: UsersEntity): Promise<DeleteResult> {
