@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 
 import { UsersEntity } from 'src/users/entities/users.entity';
 
@@ -10,21 +10,24 @@ import { RecordsEntity } from '../entities/records.entity';
 
 @Injectable()
 export class CommentsService {
-    constructor(
-        @InjectRepository(RecordsEntity) private readonly recordsRepository: Repository<RecordsEntity>,
-        @InjectRepository(RecordCommentsEntity)
-        private readonly recordCommentsRepository: Repository<RecordCommentsEntity>,
-    ) {}
+    constructor(@InjectRepository(RecordsEntity) private readonly recordsRepository: Repository<RecordsEntity>) {}
 
-    public getCommentById(commentId: number): Promise<RecordsEntity | null> {
-        return this.recordsRepository.findOne({
-            where: {
-                id: commentId,
-            },
-            relations: {
-                images: true,
-            },
-        });
+    public async getCommentById(commentId: number): Promise<RecordCommentsEntity | null> {
+        const selectedRows: RecordCommentsEntity[] = await this.recordsRepository.query(
+            `
+                SELECT rc.*
+                FROM record_comments AS rc
+                WHERE rc.id = $1::INT;
+            `,
+            [commentId],
+        );
+        const comment: RecordCommentsEntity | undefined = selectedRows[0];
+
+        if (!comment) {
+            return null;
+        }
+
+        return comment;
     }
 
     public async getCommentByIdOrThrow(commentId: number): Promise<RecordsEntity> {
@@ -107,7 +110,18 @@ export class CommentsService {
         );
     }
 
-    public deleteComment(comment: RecordsEntity) {
-        throw new Error('Method not implemented.');
+    public deleteComment(comment: RecordCommentsEntity): Promise<DeleteResult> {
+        if (!comment) {
+            throw new NotFoundException('Comment not found.');
+        }
+
+        return this.recordsRepository.query(
+            `
+                DELETE
+                FROM record_comments AS rc
+                WHERE rc.id = $1::INT;
+            `,
+            [comment.id],
+        );
     }
 }
