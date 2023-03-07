@@ -9,7 +9,6 @@ import { ServeStaticConfig } from '../configs/serve-static-config';
 
 import { AuthModule } from './auth/auth.module';
 import { AuthMiddleware } from './auth/middlewares/auth.middleware';
-import { FilesModule } from './files/files.module';
 import { CommentsController } from './records/controllers/comments.controller';
 import { RecordsController } from './records/controllers/records.controller';
 import { RecordsModule } from './records/records.module';
@@ -29,7 +28,6 @@ import { UsersModule } from './users/users.module';
         UsersModule,
         AuthModule,
         RecordsModule,
-        FilesModule,
     ],
 })
 export class AppModule {

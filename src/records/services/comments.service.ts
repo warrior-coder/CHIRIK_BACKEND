@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { FilesService } from 'src/files/files.service';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';
@@ -17,7 +16,6 @@ export class CommentsService {
         @InjectRepository(RecordCommentsEntity)
         private readonly recordCommentsRepository: Repository<RecordCommentsEntity>,
         @InjectRepository(RecordImagesEntity) private readonly recordImagesRepository: Repository<RecordImagesEntity>,
-        private readonly filesService: FilesService,
     ) {}
 
     public getCommentById(commentId: number): Promise<RecordsEntity | null> {

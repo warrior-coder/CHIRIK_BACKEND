@@ -1,8 +1,8 @@
+import { FilesService } from '@app/files';
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 
-import { FilesService } from 'src/files/files.service';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateRecordDto } from '../dto/create-record.dto';
@@ -116,6 +116,12 @@ export class RecordsService {
     public deleteRecord(record: RecordsEntity): Promise<DeleteResult> {
         if (!record) {
             throw new NotFoundException('Record not found.');
+        }
+
+        console.log(record);
+
+        for (const recordImage of record.images) {
+            this.filesService.removeImageFile(recordImage['file_name']);
         }
 
         return this.recordsRepository.query(
