@@ -33,7 +33,7 @@ export class CommentsController {
 
     @Get('/:commentId')
     public async getCommentById(@Param('commentId', ParseIntPipe) commentId: number) {
-        const comment = await this.commentsService.getCommentByIdOrThrow(commentId);
+        const comment = await this.commentsService.getCommentById(commentId);
 
         return comment;
     }

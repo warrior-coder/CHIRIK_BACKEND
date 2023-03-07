@@ -30,18 +30,19 @@ export class CommentsService {
         return comment;
     }
 
-    public async getCommentByIdOrThrow(commentId: number): Promise<RecordsEntity> {
-        const comment = await this.recordsRepository.findOne({
-            where: {
-                id: commentId,
-            },
-            relations: {
-                images: true,
-            },
-        });
+    public async getCommentByIdOrThrow(commentId: number): Promise<RecordCommentsEntity> {
+        const selectedRows: RecordCommentsEntity[] = await this.recordsRepository.query(
+            `
+                SELECT rc.*
+                FROM record_comments AS rc
+                WHERE rc.id = $1::INT;
+            `,
+            [commentId],
+        );
+        const comment: RecordCommentsEntity | undefined = selectedRows[0];
 
         if (!comment) {
-            throw new NotFoundException('comment not found');
+            throw new NotFoundException('Comment not found.');
         }
 
         return comment;
