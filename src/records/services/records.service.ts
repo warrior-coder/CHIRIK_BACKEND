@@ -188,17 +188,26 @@ export class RecordsService {
         return record;
     }
 
-    public createLikeOnRecord(record: RecordsEntity, user: UsersEntity): Promise<RecordLikesEntity> {
+    public async createLikeOnRecord(record: RecordsEntity, user: UsersEntity): Promise<RecordLikesEntity> {
         if (!record) {
-            throw new NotFoundException('record not found');
+            throw new NotFoundException('Record not found.');
         }
 
-        const likeOnRecord = this.recordLikesRepository.create({
-            record,
-            user,
-        });
+        if (!user) {
+            throw new NotFoundException('User not found.');
+        }
 
-        return this.recordLikesRepository.save(likeOnRecord);
+        const insertedRecordLikes: RecordLikesEntity[] = await this.recordsRepository.query(
+            `
+                INSERT INTO record_likes(record_id, user_id)
+                VALUES ($1::INT, $2::INT)
+                RETURNING id, record_id, user_id;
+            `,
+            [record.id, user.id],
+        );
+        const recordLike: RecordLikesEntity = insertedRecordLikes[0];
+
+        return recordLike;
     }
 
     public deleteLikeFromRecord(record: RecordsEntity, user: UsersEntity): Promise<DeleteResult> {
