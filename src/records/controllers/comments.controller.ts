@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '@app/auth';
 import { CurrentUserDecorator } from 'src/auth/decorators/current-user.decorator';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';
+import { EditCommentDto } from '../dto/edit-comment.dto';
 import { CommentsService } from '../services/comments.service';
 import { RecordsService } from '../services/records.service';
 
@@ -22,6 +23,16 @@ export class CommentsController {
         const record = await this.recordsService.getRecordById(recordId);
 
         return this.commentsService.createCommentOnRecord(createCommentDto, currentUser, record);
+    }
+
+    @Put('/:commentId')
+    public async editCommentById(
+        @Param('commentId', ParseIntPipe) commentId: number,
+        @Body() editCommentDto: EditCommentDto,
+    ) {
+        const comment = await this.commentsService.getCommentById(commentId);
+
+        return this.commentsService.editComment(comment, editCommentDto);
     }
 
     @Get('/count/record/:recordId')

@@ -5,6 +5,7 @@ import { DeleteResult, Repository } from 'typeorm';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';
+import { EditCommentDto } from '../dto/edit-comment.dto';
 import { RecordCommentsEntity } from '../entities/record-comments.entity';
 import { RecordsEntity } from '../entities/records.entity';
 
@@ -76,6 +77,26 @@ export class CommentsService {
         const recordComment: RecordCommentsEntity = insertedRows[0];
 
         return recordComment;
+    }
+
+    public editComment(comment: RecordCommentsEntity, editCommentDto: EditCommentDto) {
+        if (!comment) {
+            throw new NotFoundException('Comment not found.');
+        }
+
+        if (!editCommentDto.text) {
+            throw new BadRequestException('Comment has no text.');
+        }
+
+        return this.recordsRepository.query(
+            `
+                UPDATE record_comments
+                SET "text" = $1::TEXT
+                WHERE id = $2::INT
+                RETURNING id, "text", created_at, author_id, record_id;
+            `,
+            [editCommentDto.text, comment.id],
+        );
     }
 
     public async getRecordCommentsCount(record: RecordsEntity): Promise<number> {
