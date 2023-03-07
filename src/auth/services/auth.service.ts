@@ -25,11 +25,11 @@ export class AuthService {
     public async signUpUser(signUpUserDto: SignUpUserDto): Promise<SentMessageInfo> {
         const candidateUser = await this.usersService.getUserByEmail(signUpUserDto.email);
         if (candidateUser) {
-            throw new BadRequestException('user already exists');
+            throw new BadRequestException('User already exists.');
         }
 
         const verificationCode = crypto.randomBytes(3).toString('hex');
-        await this.redisRepository.set(verificationCode, JSON.stringify(signUpUserDto), 'EX', 1 * 60 * 60); // s: 24h * 60m * 60s
+        await this.redisRepository.set(verificationCode, JSON.stringify(signUpUserDto), 'EX', 5 * 60); // s: 5m * 60s
 
         return this.sendConfirmationEmail(signUpUserDto.email, verificationCode);
     }
