@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 
@@ -78,26 +78,36 @@ export class RecordsService {
         createRecordDto: CreateRecordDto,
         author: UsersEntity,
         imageFiles: Array<Express.Multer.File> = [],
-    ): Promise<RecordsEntity> {
+    ): Promise<any> {
         if (!createRecordDto.text) {
             throw new BadRequestException('Record has no text.');
         }
 
-        const record: RecordsEntity = this.recordsRepository.create({
-            text: createRecordDto.text,
-            author,
-        });
+        const insertedRecords: RecordsEntity[] = await this.recordsRepository.query(
+            `
+                INSERT INTO records("text", author_id)
+                VALUES ($1::TEXT, $2::INT)
+                RETURNING id, "text", created_at, author_id;
+            `,
+            [createRecordDto.text, author.id],
+        );
+        const record: RecordsEntity = insertedRecords[0];
 
-        await this.recordsRepository.save(record);
+        record.images = [];
 
         for (const imageFile of imageFiles) {
             const fileName = await this.filesService.writeImageFile(imageFile);
-            const image: RecordImagesEntity = this.recordImagesRepository.create({
-                fileName,
-                record,
-            });
+            const insertedRecordImages: RecordImagesEntity[] = await this.recordsRepository.query(
+                `
+                    INSERT INTO record_images(file_name, record_id)
+                    VALUES ($1, $2)
+                    RETURNING id, file_name, record_id;
+                `,
+                [fileName, record.id],
+            );
+            const recordImage: RecordImagesEntity = insertedRecordImages[0];
 
-            await this.recordImagesRepository.save(image);
+            record.images.push(recordImage);
         }
 
         return record;
