@@ -1,7 +1,7 @@
+import { FilesModule } from '@app/files';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { FilesModule } from 'src/files/files.module';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersModule } from 'src/users/users.module';
 

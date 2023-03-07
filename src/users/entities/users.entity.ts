@@ -1,6 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
-
-import { RefreshTokensEntity } from 'src/auth/entities/refresh-tokens.entity';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'users' })
 export class UsersEntity {
@@ -16,9 +14,6 @@ export class UsersEntity {
     @Column({ nullable: false })
     password: string;
 
-    @Column({ type: 'timestamp', default: () => 'NOW()' })
-    createdAt: Date;
-
-    @OneToMany(() => RefreshTokensEntity, (refreshToken: RefreshTokensEntity) => refreshToken.user)
-    refreshTokens: RefreshTokensEntity[];
+    @Column({ name: 'created_at', type: 'timestamp', default: () => 'NOW()' })
+    createdAt: string;
 }

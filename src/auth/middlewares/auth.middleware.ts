@@ -3,8 +3,9 @@ import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/commo
 import { Response, NextFunction } from 'express';
 
 import { UserSessionsEntity } from 'src/auth/entities/users-session.entity';
-import { RequestWithUser } from 'src/interfaces/request-with-user.interface';
 import { UsersService } from 'src/users/services/users.service';
+
+import { RequestWithUser } from '../interfaces/request-with-user.interface';
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {

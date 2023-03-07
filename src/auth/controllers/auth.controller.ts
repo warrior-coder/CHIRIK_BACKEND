@@ -1,8 +1,8 @@
 import { Body, Controller, Post, Res, UsePipes } from '@nestjs/common';
 import { Response } from 'express';
 
-import { CurrentSessionIdDecorator } from 'src/decorators/current-session-id-decorator.decorator';
-import { PrivacyInfoDecorator } from 'src/decorators/privacy-info.decorator';
+import { CurrentSessionIdDecorator } from 'src/auth/decorators/current-session-id-decorator.decorator';
+import { PrivacyInfoDecorator } from 'src/auth/decorators/privacy-info.decorator';
 import { ValidationPipe } from 'src/pipes/validation.pipe';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';

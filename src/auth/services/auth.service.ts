@@ -25,21 +25,23 @@ export class AuthService {
     public async signUpUser(signUpUserDto: SignUpUserDto): Promise<SentMessageInfo> {
         const candidateUser = await this.usersService.getUserByEmail(signUpUserDto.email);
         if (candidateUser) {
-            throw new BadRequestException('user already exists');
+            throw new BadRequestException('User already exists.');
         }
 
         const verificationCode = crypto.randomBytes(3).toString('hex');
-        await this.redisRepository.set(verificationCode, JSON.stringify(signUpUserDto), 'EX', 1 * 60 * 60); // s: 24h * 60m * 60s
+        await this.redisRepository.set(verificationCode, JSON.stringify(signUpUserDto), 'EX', 5 * 60); // s: 5m * 60s
 
         return this.sendConfirmationEmail(signUpUserDto.email, verificationCode);
     }
 
     public async confirmEmailAndGetSignUpUserDto(verificationCode: string): Promise<SignUpUserDto> {
-        const signUpUserDto: SignUpUserDto = JSON.parse(await this.redisRepository.get(verificationCode));
+        const redisObject = await this.redisRepository.get(verificationCode);
 
-        if (!signUpUserDto) {
-            throw new BadRequestException('invalid verification code');
+        if (!redisObject) {
+            throw new BadRequestException('Invalid verification code.');
         }
+
+        const signUpUserDto: SignUpUserDto = JSON.parse(redisObject);
 
         await this.redisRepository.del(verificationCode);
 
@@ -88,13 +90,13 @@ export class AuthService {
         const user = await this.usersService.getUserByEmail(signInUserDto.email);
 
         if (!user) {
-            throw new NotFoundException('user not found');
+            throw new NotFoundException('User not found.');
         }
 
         const isComparedPasswords = await bcryptjs.compare(signInUserDto.password, user.password);
 
         if (!isComparedPasswords) {
-            throw new UnauthorizedException('wrong password');
+            throw new UnauthorizedException('Wrong password.');
         }
 
         return user;
@@ -114,7 +116,7 @@ export class AuthService {
                         A new sign-in
                     </h2>
                     <p style="font-size:16px;">
-                        We noticed a new sign-in to your Twitter Account. If this was you, you don’t need to do anything. If not, take care of your account security.
+                        We noticed a new sign-in to your Chirik Account. If this was you, you don’t need to do anything. If not, take care of your account security.
                     </p>
                     <div style="font-size:16px; font-style: italic;">
                         Ip Address: ${privacyInfo.ipAddress}
@@ -124,14 +126,14 @@ export class AuthService {
                     <br>
                 </div>
             `,
-            from: 'Twitter <alex-mailer@mail.ru>',
+            from: 'Chirik <alex-mailer@mail.ru>',
         });
     }
 
     private sendConfirmationEmail(userEmail: string, verificationCode: string): Promise<SentMessageInfo> {
         return this.mailerService.sendMail({
             to: userEmail,
-            subject: `${verificationCode} is your Twitter verification code`,
+            subject: `${verificationCode} is your Chirik verification code`,
             html: `
                 <div style="font-family:Helvetica;">
                     <h2>
@@ -141,7 +143,7 @@ export class AuthService {
                         There’s one quick step you need to complete before creating your Twitter account. Let’s make sure this is the right email address for you – please confirm this is the right address to use for your new account.
                     </p>
                     <p style="font-size:16px;">
-                        Please enter this verification code to get started on Twitter:
+                        Please enter this verification code to get started on Chirik:
                     </p>
                     <div style="font-size:32px; font-weight:bold;">
                         ${verificationCode}
@@ -152,17 +154,17 @@ export class AuthService {
                     <div style="font-size:16px; margin-top:24px;">
                         Thanks,
                         <br>    
-                        Twitter
+                        Chirik
                     </div>
                     <br>
                     <br>
                     <span style="margin-bottom:32px; color:#8899a6; font-size: 12px; text-align: center;">
-                        Twitter, Inc.
+                        Chirik, Inc.
                     </span>
                     <br>
                 </div>
             `,
-            from: 'Twitter <alex-mailer@mail.ru>',
+            from: 'Chirik <alex-mailer@mail.ru>',
         });
     }
 }

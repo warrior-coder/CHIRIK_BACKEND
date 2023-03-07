@@ -2,10 +2,11 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 
-import { FilesService } from 'src/files/files.service';
+import { FilesService } from '@app/files';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateRecordDto } from '../dto/create-record.dto';
+import { EditRecordDto } from '../dto/edit-record.dto';
 import { RecordImagesEntity } from '../entities/record-images.entity';
 import { RecordLikesEntity } from '../entities/record-likes.entity';
 import { RecordsEntity } from '../entities/records.entity';
@@ -14,153 +15,287 @@ import { RecordsEntity } from '../entities/records.entity';
 export class RecordsService {
     constructor(
         @InjectRepository(RecordsEntity) private readonly recordsRepository: Repository<RecordsEntity>,
-        @InjectRepository(RecordImagesEntity) private readonly recordImagesRepository: Repository<RecordImagesEntity>,
         private readonly filesService: FilesService,
-        @InjectRepository(RecordLikesEntity) private readonly recordLikesRepository: Repository<RecordLikesEntity>,
     ) {}
 
-    public getAllUserRecords(user: UsersEntity): Promise<RecordsEntity[]> {
+    public async getAllUserRecords(user: UsersEntity): Promise<RecordsEntity[]> {
         if (!user) {
-            throw new NotFoundException('user not found');
+            throw new NotFoundException('User not found.');
         }
 
-        return this.recordsRepository
-            .createQueryBuilder('records')
-            .leftJoinAndSelect('records.images', 'images')
-            .leftJoinAndSelect('records.author', 'author')
-            .where(`records."isComment" = FALSE AND records."authorId" = :userId`, { userId: user.id })
-            .orderBy('records.createdAt', 'DESC')
-            .getMany();
+        const allUserRecords: RecordsEntity[] = await this.recordsRepository.query(
+            `
+                SELECT r.*
+                FROM records AS r
+                INNER JOIN users u ON u.id = r.author_id
+                WHERE r.author_id = $1::INT
+                ORDER BY r.created_at DESC;
+            `,
+            [user.id],
+        );
+
+        for (const userRecord of allUserRecords) {
+            const recordImages: RecordImagesEntity[] = await this.recordsRepository.query(
+                `
+                    SELECT ri.*
+                    FROM record_images AS ri
+                    WHERE ri.record_id = $1::INT;
+                `,
+                [userRecord.id],
+            );
+
+            userRecord.images = recordImages;
+        }
+
+        return allUserRecords;
     }
 
-    public getAllRecords() {
-        return this.recordsRepository.find({
-            relations: {
-                images: true,
-                author: true,
-            },
-            order: {
-                createdAt: 'DESC',
-            },
-        });
+    public async getAllRecords(): Promise<RecordsEntity[]> {
+        const allRecords: RecordsEntity[] = await this.recordsRepository.query(`
+            SELECT r.*
+            FROM records AS r
+            ORDER BY r.created_at DESC;
+        `);
+
+        for (const record of allRecords) {
+            const recordImages: RecordImagesEntity[] = await this.recordsRepository.query(
+                `
+                    SELECT ri.*
+                    FROM record_images AS ri
+                    WHERE ri.record_id = $1::INT;
+                `,
+                [record.id],
+            );
+
+            record.images = recordImages;
+        }
+
+        return allRecords;
     }
 
     public async createRecord(
         createRecordDto: CreateRecordDto,
         author: UsersEntity,
         imageFiles: Array<Express.Multer.File> = [],
-    ): Promise<RecordsEntity> {
-        if (!createRecordDto.text && imageFiles.length === 0) {
-            throw new BadRequestException('record cannot be empty');
+    ): Promise<any> {
+        if (!author) {
+            throw new NotFoundException('Author not found.');
         }
 
-        const record: RecordsEntity = this.recordsRepository.create({
-            text: createRecordDto.text,
-            author,
-        });
+        if (!createRecordDto.text) {
+            throw new BadRequestException('Record has no text.');
+        }
 
-        await this.recordsRepository.save(record);
+        const insertedRows: RecordsEntity[] = await this.recordsRepository.query(
+            `
+                INSERT INTO records("text", author_id)
+                VALUES ($1::TEXT, $2::INT)
+                RETURNING id, "text", created_at, author_id;
+            `,
+            [createRecordDto.text, author.id],
+        );
+        const record: RecordsEntity = insertedRows[0];
 
-        record.images = await Promise.all(
-            imageFiles.map(async (imageFile): Promise<RecordImagesEntity> => {
-                const fileName = await this.filesService.writeImageFile(imageFile);
-                const image = this.recordImagesRepository.create({
-                    name: fileName,
-                    record,
-                });
+        record.images = [];
 
-                await this.recordImagesRepository.save(image);
+        for (const imageFile of imageFiles) {
+            const fileName = await this.filesService.writeImageFile(imageFile);
+            const insertedRows: RecordImagesEntity[] = await this.recordsRepository.query(
+                `
+                    INSERT INTO record_images(file_name, record_id)
+                    VALUES ($1::VARCHAR(64), $2::INT)
+                    RETURNING id, file_name, record_id;
+                `,
+                [fileName, record.id],
+            );
+            const recordImage: RecordImagesEntity = insertedRows[0];
 
-                image.record = undefined;
+            record.images.push(recordImage);
+        }
 
-                return image;
-            }),
+        return record;
+    }
+
+    public editRecord(record: RecordsEntity, editRecordDto: EditRecordDto) {
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        if (!editRecordDto.text) {
+            throw new BadRequestException('Record has no text.');
+        }
+
+        return this.recordsRepository.query(
+            `
+                UPDATE records
+                SET "text" = $1::TEXT
+                WHERE id = $2::INT
+                RETURNING id, "text", created_at, author_id;
+            `,
+            [editRecordDto.text, record.id],
+        );
+    }
+
+    public deleteRecord(record: RecordsEntity): Promise<DeleteResult> {
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        for (const recordImage of record.images) {
+            this.filesService.removeImageFile(recordImage['file_name']);
+        }
+
+        return this.recordsRepository.query(
+            `
+                DELETE
+                FROM records AS r
+                WHERE r.id = $1::INT;
+            `,
+            [record.id],
+        );
+    }
+
+    public async getRecordById(recordId: number): Promise<RecordsEntity | null> {
+        const selectedRows: RecordsEntity[] = await this.recordsRepository.query(
+            `
+                SELECT r.*
+                FROM records AS r
+                WHERE r.id = $1::INT
+                LIMIT 1;
+            `,
+            [recordId],
+        );
+        const record: RecordsEntity | undefined = selectedRows[0];
+
+        if (!record) {
+            return null;
+        }
+
+        const recordImages: RecordImagesEntity[] = await this.recordsRepository.query(
+            `
+                SELECT ri.*
+                FROM record_images AS ri
+                WHERE ri.record_id = $1::INT;
+            `,
+            [record.id],
         );
 
-        return record;
-    }
-
-    public async deleteRecord(record: RecordsEntity): Promise<RecordsEntity> {
-        if (!record) {
-            throw new NotFoundException('record not found');
-        }
-
-        const recordImages = await this.recordImagesRepository
-            .createQueryBuilder('record_images')
-            .where(`record_images."recordId" = :recordId`, { recordId: record.id })
-            .getMany();
-
-        recordImages.forEach(async (recordImage: RecordImagesEntity) => {
-            this.filesService.removeImageFile(recordImage.name);
-            await this.recordImagesRepository.remove(recordImage);
-        });
-
-        return this.recordsRepository.remove(record);
-    }
-
-    public getRecordById(recordId: number): Promise<RecordsEntity | null> {
-        return this.recordsRepository.findOne({
-            where: {
-                id: recordId,
-            },
-            relations: {
-                author: true,
-                images: true,
-            },
-        });
-    }
-
-    public getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
-        const record = this.recordsRepository.findOne({
-            where: {
-                id: recordId,
-            },
-            relations: {
-                author: true,
-                images: true,
-            },
-        });
-
-        if (!record) {
-            throw new NotFoundException('record not found');
-        }
+        record.images = recordImages;
 
         return record;
     }
 
-    public createLikeOnRecord(record: RecordsEntity, user: UsersEntity): Promise<RecordLikesEntity> {
+    public async getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
+        const selectedRows: RecordsEntity[] = await this.recordsRepository.query(
+            `
+                SELECT r.*
+                FROM records AS r
+                WHERE r.id = $1::INT
+                LIMIT 1;
+            `,
+            [recordId],
+        );
+        const record: RecordsEntity | undefined = selectedRows[0];
+
         if (!record) {
-            throw new NotFoundException('record not found');
+            throw new NotFoundException('Record not found.');
         }
 
-        const likeOnRecord = this.recordLikesRepository.create({
-            record,
-            user,
-        });
+        const recordImages: RecordImagesEntity[] = await this.recordsRepository.query(
+            `
+                SELECT ri.*
+                FROM record_images AS ri
+                WHERE ri.record_id = $1::INT;
+            `,
+            [record.id],
+        );
 
-        return this.recordLikesRepository.save(likeOnRecord);
+        record.images = recordImages;
+
+        return record;
+    }
+
+    public async createLikeOnRecord(record: RecordsEntity, user: UsersEntity): Promise<RecordLikesEntity> {
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        if (!user) {
+            throw new NotFoundException('User not found.');
+        }
+
+        const insertedRows: RecordLikesEntity[] = await this.recordsRepository.query(
+            `
+                INSERT INTO record_likes(record_id, user_id)
+                VALUES ($1::INT, $2::INT)
+                RETURNING id, record_id, user_id;
+            `,
+            [record.id, user.id],
+        );
+        const recordLike: RecordLikesEntity = insertedRows[0];
+
+        return recordLike;
     }
 
     public deleteLikeFromRecord(record: RecordsEntity, user: UsersEntity): Promise<DeleteResult> {
         if (!record) {
-            throw new NotFoundException('record not found');
+            throw new NotFoundException('Record not found.');
         }
 
-        return this.recordLikesRepository.delete({
-            record,
-            user,
-        });
+        if (!user) {
+            throw new NotFoundException('User not found.');
+        }
+
+        return this.recordsRepository.query(
+            `
+                DELETE
+                FROM record_likes AS rl
+                WHERE rl.record_id = $1::INT AND rl.user_id = $2::INT;
+            `,
+            [record.id, user.id],
+        );
     }
 
-    public getRecordLikesCount(record: RecordsEntity): Promise<number> {
+    public async getRecordLikesCount(record: RecordsEntity): Promise<number> {
         if (!record) {
-            throw new NotFoundException('record not found');
+            throw new NotFoundException('Record not found.');
         }
 
-        return this.recordLikesRepository.count({
-            where: {
-                record,
-            },
-        });
+        const queryResultRows = await this.recordsRepository.query(
+            `
+                SELECT COUNT(*) AS record_likes_count
+                FROM record_likes AS rl
+                WHERE rl.record_id = $1::INT;
+            `,
+            [record.id],
+        );
+        const recordLikesCount: number = parseInt(queryResultRows[0]['record_likes_count']);
+
+        return recordLikesCount;
+    }
+
+    public async getIsLikeOnRecordExists(record: RecordsEntity, user: UsersEntity): Promise<boolean> {
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        if (!user) {
+            throw new NotFoundException('User not found.');
+        }
+
+        const queryResultRows = await this.recordsRepository.query(
+            `
+                SELECT EXISTS(
+                    SELECT *
+                    FROM record_likes AS rl
+                    WHERE rl.record_id = $1::INT AND rl.user_id = $2::INT
+                ) AS is_like_exists;
+            `,
+            [record.id, user.id],
+        );
+
+        const isLikeOnRecordExists = Boolean(queryResultRows[0]['is_like_exists']);
+
+        return isLikeOnRecordExists;
     }
 }
