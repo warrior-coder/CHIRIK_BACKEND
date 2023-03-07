@@ -212,13 +212,21 @@ export class RecordsService {
 
     public deleteLikeFromRecord(record: RecordsEntity, user: UsersEntity): Promise<DeleteResult> {
         if (!record) {
-            throw new NotFoundException('record not found');
+            throw new NotFoundException('Record not found.');
         }
 
-        return this.recordLikesRepository.delete({
-            record,
-            user,
-        });
+        if (!user) {
+            throw new NotFoundException('User not found.');
+        }
+
+        return this.recordsRepository.query(
+            `
+                DELETE
+                FROM record_likes AS rl
+                WHERE rl.record_id = $1::INT AND rl.user_id = $2::INT;
+            `,
+            [record.id, user.id],
+        );
     }
 
     public getRecordLikesCount(record: RecordsEntity): Promise<number> {
