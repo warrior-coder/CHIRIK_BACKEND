@@ -1,4 +1,3 @@
-import { AuthGuard } from '@app/auth';
 import {
     Body,
     Controller,
@@ -7,13 +6,13 @@ import {
     Param,
     ParseIntPipe,
     Post,
-    Query,
     UploadedFiles,
     UseGuards,
     UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
+import { AuthGuard } from '@app/auth';
 import { CurrentUserDecorator } from 'src/decorators/current-user.decorator';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';

@@ -29,7 +29,7 @@ export class RecordsService {
                 SELECT r.*
                 FROM records AS r
                 INNER JOIN users u ON u.id = r.author_id
-                WHERE r.author_id = $1
+                WHERE r.author_id = $1::INT
                 ORDER BY r.created_at DESC;
             `,
             [user.id],
@@ -40,7 +40,7 @@ export class RecordsService {
                 `
                     SELECT ri.*
                     FROM record_images AS ri
-                    WHERE ri.record_id = $1;
+                    WHERE ri.record_id = $1::INT;
                 `,
                 [userRecord.id],
             );
@@ -63,7 +63,7 @@ export class RecordsService {
                 `
                     SELECT ri.*
                     FROM record_images AS ri
-                    WHERE ri.record_id = $1;
+                    WHERE ri.record_id = $1::INT;
                 `,
                 [record.id],
             );
@@ -103,40 +103,77 @@ export class RecordsService {
         return record;
     }
 
-    public deleteRecord(record: RecordsEntity): Promise<RecordsEntity> {
+    public deleteRecord(record: RecordsEntity): Promise<DeleteResult> {
         if (!record) {
-            throw new NotFoundException('record not found');
+            throw new NotFoundException('Record not found.');
         }
 
-        throw new Error('');
+        return this.recordsRepository.query(
+            `
+                DELETE
+                FROM records AS r
+                WHERE r.id = $1::INT;
+            `,
+            [record.id],
+        );
     }
 
-    public getRecordById(recordId: number): Promise<RecordsEntity | null> {
-        return this.recordsRepository.findOne({
-            where: {
-                id: recordId,
-            },
-            relations: {
-                author: true,
-                images: true,
-            },
-        });
-    }
-
-    public getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
-        const record = this.recordsRepository.findOne({
-            where: {
-                id: recordId,
-            },
-            relations: {
-                author: true,
-                images: true,
-            },
-        });
+    public async getRecordById(recordId: number): Promise<RecordsEntity | null> {
+        const records: RecordsEntity[] = await this.recordsRepository.query(
+            `
+                SELECT r.*
+                FROM records AS r
+                WHERE r.id = $1::INT
+                LIMIT 1;
+            `,
+            [recordId],
+        );
+        const record: RecordsEntity | undefined = records[0];
 
         if (!record) {
-            throw new NotFoundException('record not found');
+            return null;
         }
+
+        const recordImages: RecordImagesEntity[] = await this.recordsRepository.query(
+            `
+                SELECT ri.*
+                FROM record_images AS ri
+                WHERE ri.record_id = $1::INT;
+            `,
+            [record.id],
+        );
+
+        record.images = recordImages;
+
+        return record;
+    }
+
+    public async getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
+        const records: RecordsEntity[] = await this.recordsRepository.query(
+            `
+                SELECT r.*
+                FROM records AS r
+                WHERE r.id = $1::INT
+                LIMIT 1;
+            `,
+            [recordId],
+        );
+        const record: RecordsEntity | undefined = records[0];
+
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        const recordImages: RecordImagesEntity[] = await this.recordsRepository.query(
+            `
+                SELECT ri.*
+                FROM record_images AS ri
+                WHERE ri.record_id = $1::INT;
+            `,
+            [record.id],
+        );
+
+        record.images = recordImages;
 
         return record;
     }
