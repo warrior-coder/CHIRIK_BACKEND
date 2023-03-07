@@ -7,6 +7,7 @@ export class SignUpUserDto {
 
     @IsString()
     @IsEmail()
+    @Length(4, 32)
     readonly email: string;
 
     @IsString()
