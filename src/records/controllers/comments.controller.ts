@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '@app/auth';
-import { CurrentUserDecorator } from 'src/decorators/current-user.decorator';
+import { CurrentUserDecorator } from 'src/auth/decorators/current-user.decorator';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';

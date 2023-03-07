@@ -13,7 +13,7 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 
 import { AuthGuard } from '@app/auth';
-import { CurrentUserDecorator } from 'src/decorators/current-user.decorator';
+import { CurrentUserDecorator } from 'src/auth/decorators/current-user.decorator';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
 
