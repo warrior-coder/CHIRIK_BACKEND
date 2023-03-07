@@ -1,5 +1,5 @@
 import { FilesService } from '@app/files';
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 
@@ -14,9 +14,7 @@ import { RecordsEntity } from '../entities/records.entity';
 export class RecordsService {
     constructor(
         @InjectRepository(RecordsEntity) private readonly recordsRepository: Repository<RecordsEntity>,
-        @InjectRepository(RecordImagesEntity) private readonly recordImagesRepository: Repository<RecordImagesEntity>,
         private readonly filesService: FilesService,
-        @InjectRepository(RecordLikesEntity) private readonly recordLikesRepository: Repository<RecordLikesEntity>,
     ) {}
 
     public async getAllUserRecords(user: UsersEntity): Promise<RecordsEntity[]> {
@@ -79,11 +77,15 @@ export class RecordsService {
         author: UsersEntity,
         imageFiles: Array<Express.Multer.File> = [],
     ): Promise<any> {
+        if (!author) {
+            throw new NotFoundException('Author not found.');
+        }
+
         if (!createRecordDto.text) {
             throw new BadRequestException('Record has no text.');
         }
 
-        const insertedRecords: RecordsEntity[] = await this.recordsRepository.query(
+        const insertedRows: RecordsEntity[] = await this.recordsRepository.query(
             `
                 INSERT INTO records("text", author_id)
                 VALUES ($1::TEXT, $2::INT)
@@ -91,13 +93,13 @@ export class RecordsService {
             `,
             [createRecordDto.text, author.id],
         );
-        const record: RecordsEntity = insertedRecords[0];
+        const record: RecordsEntity = insertedRows[0];
 
         record.images = [];
 
         for (const imageFile of imageFiles) {
             const fileName = await this.filesService.writeImageFile(imageFile);
-            const insertedRecordImages: RecordImagesEntity[] = await this.recordsRepository.query(
+            const insertedRows: RecordImagesEntity[] = await this.recordsRepository.query(
                 `
                     INSERT INTO record_images(file_name, record_id)
                     VALUES ($1, $2)
@@ -105,7 +107,7 @@ export class RecordsService {
                 `,
                 [fileName, record.id],
             );
-            const recordImage: RecordImagesEntity = insertedRecordImages[0];
+            const recordImage: RecordImagesEntity = insertedRows[0];
 
             record.images.push(recordImage);
         }
@@ -117,8 +119,6 @@ export class RecordsService {
         if (!record) {
             throw new NotFoundException('Record not found.');
         }
-
-        console.log(record);
 
         for (const recordImage of record.images) {
             this.filesService.removeImageFile(recordImage['file_name']);
@@ -135,7 +135,7 @@ export class RecordsService {
     }
 
     public async getRecordById(recordId: number): Promise<RecordsEntity | null> {
-        const records: RecordsEntity[] = await this.recordsRepository.query(
+        const selectedRows: RecordsEntity[] = await this.recordsRepository.query(
             `
                 SELECT r.*
                 FROM records AS r
@@ -144,7 +144,7 @@ export class RecordsService {
             `,
             [recordId],
         );
-        const record: RecordsEntity | undefined = records[0];
+        const record: RecordsEntity | undefined = selectedRows[0];
 
         if (!record) {
             return null;
@@ -165,7 +165,7 @@ export class RecordsService {
     }
 
     public async getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
-        const records: RecordsEntity[] = await this.recordsRepository.query(
+        const selectedRows: RecordsEntity[] = await this.recordsRepository.query(
             `
                 SELECT r.*
                 FROM records AS r
@@ -174,7 +174,7 @@ export class RecordsService {
             `,
             [recordId],
         );
-        const record: RecordsEntity | undefined = records[0];
+        const record: RecordsEntity | undefined = selectedRows[0];
 
         if (!record) {
             throw new NotFoundException('Record not found.');
@@ -203,7 +203,7 @@ export class RecordsService {
             throw new NotFoundException('User not found.');
         }
 
-        const insertedRecordLikes: RecordLikesEntity[] = await this.recordsRepository.query(
+        const insertedRows: RecordLikesEntity[] = await this.recordsRepository.query(
             `
                 INSERT INTO record_likes(record_id, user_id)
                 VALUES ($1::INT, $2::INT)
@@ -211,7 +211,7 @@ export class RecordsService {
             `,
             [record.id, user.id],
         );
-        const recordLike: RecordLikesEntity = insertedRecordLikes[0];
+        const recordLike: RecordLikesEntity = insertedRows[0];
 
         return recordLike;
     }

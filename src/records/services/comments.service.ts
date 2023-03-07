@@ -6,7 +6,6 @@ import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { RecordCommentsEntity } from '../entities/record-comments.entity';
-import { RecordImagesEntity } from '../entities/record-images.entity';
 import { RecordsEntity } from '../entities/records.entity';
 
 @Injectable()
@@ -15,7 +14,6 @@ export class CommentsService {
         @InjectRepository(RecordsEntity) private readonly recordsRepository: Repository<RecordsEntity>,
         @InjectRepository(RecordCommentsEntity)
         private readonly recordCommentsRepository: Repository<RecordCommentsEntity>,
-        @InjectRepository(RecordImagesEntity) private readonly recordImagesRepository: Repository<RecordImagesEntity>,
     ) {}
 
     public getCommentById(commentId: number): Promise<RecordsEntity | null> {
@@ -46,26 +44,34 @@ export class CommentsService {
         return comment;
     }
 
-    public createCommentOnRecord(
+    public async createCommentOnRecord(
         createCommentDto: CreateCommentDto,
         author: UsersEntity,
         record: RecordsEntity,
     ): Promise<RecordCommentsEntity> {
-        if (createCommentDto.text === '') {
-            throw new BadRequestException('comment cannot be empty');
+        if (!author) {
+            throw new NotFoundException('Author not found.');
         }
 
         if (!record) {
-            throw new NotFoundException('record not found');
+            throw new NotFoundException('Record not found.');
         }
 
-        const comment = this.recordCommentsRepository.create({
-            text: createCommentDto.text,
-            author,
-            record,
-        });
+        if (createCommentDto.text === '') {
+            throw new BadRequestException('Comment has no text.');
+        }
 
-        return this.recordCommentsRepository.save(comment);
+        const insertedRows: RecordCommentsEntity[] = await this.recordsRepository.query(
+            `
+                INSERT INTO record_comments("text", author_id, record_id)
+                VALUES ($1, $2, $3)
+                RETURNING id, "text", author_id, record_id;
+            `,
+            [createCommentDto.text, author.id, record.id],
+        );
+        const recordComment: RecordCommentsEntity = insertedRows[0];
+
+        return recordComment;
     }
 
     public getRecordCommentsCount(record: RecordsEntity): Promise<number> {

@@ -19,7 +19,7 @@ export class CommentsController {
         @Param('recordId', ParseIntPipe) recordId: number,
         @CurrentUserDecorator() currentUser: UsersEntity,
     ) {
-        const record = await this.recordsService.getRecordByIdOrThrow(recordId);
+        const record = await this.recordsService.getRecordById(recordId);
 
         return this.commentsService.createCommentOnRecord(createCommentDto, currentUser, record);
     }
