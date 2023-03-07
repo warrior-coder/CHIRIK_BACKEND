@@ -61,7 +61,7 @@ export class CommentsService {
             throw new NotFoundException('Record not found.');
         }
 
-        if (createCommentDto.text === '') {
+        if (!createCommentDto.text) {
             throw new BadRequestException('Comment has no text.');
         }
 

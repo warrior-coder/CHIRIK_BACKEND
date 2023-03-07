@@ -58,7 +58,7 @@ export class UsersService {
         const insertedRows: UsersEntity[] = await this.usersRepository.query(
             `
                 INSERT INTO users("name", email, "password")
-                VALUES ($1::VARCHAR(32), $2::VARCHAR(32), $3::VARCHAR(32))
+                VALUES ($1::VARCHAR(32), $2::VARCHAR(64), $3::VARCHAR(128))
                 RETURNING id, "name", email, "password";
             `,
             [createUserDto.name, createUserDto.email, createUserDto.password],

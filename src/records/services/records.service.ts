@@ -1,11 +1,12 @@
-import { FilesService } from '@app/files';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 
+import { FilesService } from '@app/files';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateRecordDto } from '../dto/create-record.dto';
+import { EditRecordDto } from '../dto/edit-record.dto';
 import { RecordImagesEntity } from '../entities/record-images.entity';
 import { RecordLikesEntity } from '../entities/record-likes.entity';
 import { RecordsEntity } from '../entities/records.entity';
@@ -102,7 +103,7 @@ export class RecordsService {
             const insertedRows: RecordImagesEntity[] = await this.recordsRepository.query(
                 `
                     INSERT INTO record_images(file_name, record_id)
-                    VALUES ($1, $2::INT)
+                    VALUES ($1::VARCHAR(64), $2::INT)
                     RETURNING id, file_name, record_id;
                 `,
                 [fileName, record.id],
@@ -113,6 +114,26 @@ export class RecordsService {
         }
 
         return record;
+    }
+
+    public editRecord(record: RecordsEntity, editRecordDto: EditRecordDto) {
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        if (!editRecordDto.text) {
+            throw new BadRequestException('Record has no text.');
+        }
+
+        return this.recordsRepository.query(
+            `
+                UPDATE records
+                SET "text" = $1::TEXT
+                WHERE id = $2::INT
+                RETURNING id, "text", created_at, author_id;
+            `,
+            [editRecordDto.text, record.id],
+        );
     }
 
     public deleteRecord(record: RecordsEntity): Promise<DeleteResult> {

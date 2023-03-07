@@ -5,7 +5,9 @@ import {
     Get,
     Param,
     ParseIntPipe,
+    Patch,
     Post,
+    Req,
     UploadedFiles,
     UseGuards,
     UseInterceptors,
@@ -18,6 +20,7 @@ import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
 
 import { CreateRecordDto } from '../dto/create-record.dto';
+import { EditRecordDto } from '../dto/edit-record.dto';
 import { RecordsService } from '../services/records.service';
 
 @UseGuards(AuthGuard)
@@ -45,6 +48,13 @@ export class RecordsController {
         @UploadedFiles() imageFiles: Array<Express.Multer.File>,
     ) {
         return this.recordsService.createRecord(createRecordDto, author, imageFiles);
+    }
+
+    @Patch('/:recordId')
+    public async editRecordById(@Param('recordId', ParseIntPipe) recordId: number, @Body() editRecordDto: any) {
+        const record = await this.recordsService.getRecordById(recordId);
+
+        return this.recordsService.editRecord(record, editRecordDto);
     }
 
     @Delete('/:recordId')
