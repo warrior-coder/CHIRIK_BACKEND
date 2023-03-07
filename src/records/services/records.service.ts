@@ -246,4 +246,29 @@ export class RecordsService {
 
         return recordLikesCount;
     }
+
+    public async getIsLikeOnRecordExists(record: RecordsEntity, user: UsersEntity): Promise<boolean> {
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        if (!user) {
+            throw new NotFoundException('User not found.');
+        }
+
+        const queryResultRows = await this.recordsRepository.query(
+            `
+                SELECT EXISTS(
+                    SELECT *
+                    FROM record_likes AS rl
+                    WHERE rl.record_id = $1::INT AND rl.user_id = $2::INT
+                ) AS is_like_exists;
+            `,
+            [record.id, user.id],
+        );
+
+        const isLikeOnRecordExists = Boolean(queryResultRows[0]['is_like_exists']);
+
+        return isLikeOnRecordExists;
+    }
 }

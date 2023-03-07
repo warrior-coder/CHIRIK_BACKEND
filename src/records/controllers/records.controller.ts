@@ -85,4 +85,14 @@ export class RecordsController {
 
         return this.recordsService.getRecordLikesCount(record);
     }
+
+    @Get('/:recordId/is-like-exists')
+    public async getIsLikeOnRecordExists(
+        @Param('recordId') recordId: number,
+        @CurrentUserDecorator() currentUser: UsersEntity,
+    ) {
+        const record = await this.recordsService.getRecordById(recordId);
+
+        return this.recordsService.getIsLikeOnRecordExists(record, currentUser);
+    }
 }
