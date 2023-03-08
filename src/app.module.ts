@@ -12,6 +12,7 @@ import { AuthMiddleware } from './auth/middlewares/auth.middleware';
 import { CommentsController } from './records/controllers/comments.controller';
 import { RecordsController } from './records/controllers/records.controller';
 import { RecordsModule } from './records/records.module';
+import { RolesModule } from './roles/roles.module';
 import { UsersController } from './users/controllers/users.controller';
 import { UsersModule } from './users/users.module';
 
@@ -28,6 +29,7 @@ import { UsersModule } from './users/users.module';
         UsersModule,
         AuthModule,
         RecordsModule,
+        RolesModule,
     ],
 })
 export class AppModule {
