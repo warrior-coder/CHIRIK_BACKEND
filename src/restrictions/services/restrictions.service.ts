@@ -10,7 +10,7 @@ export class RestrictionsService {
     public async createRestrictionForUser(
         action: string,
         subject: string,
-        userId: number,
+        initiatorUserId: number,
         restrictedUserId: number,
     ): Promise<UserRestrictionsEntity> {
         const insertedRows: UserRestrictionsEntity[] = await this.pgConnection.rows<UserRestrictionsEntity>(
@@ -19,7 +19,7 @@ export class RestrictionsService {
                 VALUES ($1::VARCHAR(16), $2::VARCHAR(16), $3::INT, $4::INT)
                 RETURNING id, "action", "subject", user_id, restricted_user_id;
             `,
-            [action, subject, userId, restrictedUserId],
+            [action, subject, initiatorUserId, restrictedUserId],
         );
         const userRestriction: UserRestrictionsEntity = insertedRows[0];
 
@@ -29,10 +29,27 @@ export class RestrictionsService {
     public async getIsRestricted(
         action: string,
         subject: string,
-        userId: number,
+        initiatorUserId: number,
         restrictedUserId: number,
     ): Promise<boolean> {
-        const queryResultRows: boolean[] = await this.pgConnection.rows<boolean>(
+        const existAdminRoleRows: boolean[] = await this.pgConnection.rows<boolean>(
+            `
+                SELECT EXISTS(
+                    SELECT ur.*
+                    FROM public.users_roles AS ur
+                    INNER JOIN roles AS r ON r.id = ur.role_id
+                    WHERE ur.user_id = $1 AND r."value" = 'admin'
+                );
+            `,
+            [restrictedUserId],
+        );
+        const isAdmin = Boolean(existAdminRoleRows[0]['is_restricted']);
+
+        if (isAdmin) {
+            return false;
+        }
+
+        const existRestrictionRows: boolean[] = await this.pgConnection.rows<boolean>(
             `
                 SELECT EXISTS(
                     SELECT ur.*
@@ -43,19 +60,37 @@ export class RestrictionsService {
                         AND ur.restricted_user_id = $4::INT
                 ) AS is_restricted;
             `,
-            [action, subject, userId, restrictedUserId],
+            [action, subject, initiatorUserId, restrictedUserId],
         );
+        const isRestricted = Boolean(existRestrictionRows[0]['is_restricted']);
 
-        return queryResultRows.length > 0;
+        return isRestricted;
     }
 
     public async throwForbiddenExceptionIfRestricted(
         action: string,
         subject: string,
-        userId: number,
+        initiatorUserId: number,
         restrictedUserId: number,
     ): Promise<void> {
-        const queryResultRows: boolean[] = await this.pgConnection.rows<boolean>(
+        const existAdminRoleRows: boolean[] = await this.pgConnection.rows<boolean>(
+            `
+                SELECT EXISTS(
+                    SELECT ur.*
+                    FROM public.users_roles AS ur
+                    INNER JOIN roles AS r ON r.id = ur.role_id
+                    WHERE ur.user_id = $1 AND r."value" = 'admin'
+                );
+            `,
+            [restrictedUserId],
+        );
+        const isAdmin = Boolean(existAdminRoleRows[0]['is_restricted']);
+
+        if (isAdmin) {
+            return;
+        }
+
+        const existRestrictionRows: boolean[] = await this.pgConnection.rows<boolean>(
             `
                 SELECT EXISTS(
                     SELECT ur.*
@@ -66,10 +101,11 @@ export class RestrictionsService {
                         AND ur.restricted_user_id = $4::INT
                 ) AS is_restricted;
             `,
-            [action, subject, userId, restrictedUserId],
+            [action, subject, initiatorUserId, restrictedUserId],
         );
+        const isRestricted = Boolean(existRestrictionRows[0]['is_restricted']);
 
-        if (queryResultRows.length > 0) {
+        if (isRestricted) {
             throw new ForbiddenException(`Forbidden to \"${action}\" \"${subject}\" for user.`);
         }
     }

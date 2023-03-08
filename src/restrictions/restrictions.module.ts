@@ -6,6 +6,7 @@ import { RestrictionsService } from './services/restrictions.service';
 @Module({
     controllers: [RestrictionsController],
     providers: [RestrictionsService],
+    imports: [],
     exports: [RestrictionsService],
 })
 export class RestrictionsModule {}

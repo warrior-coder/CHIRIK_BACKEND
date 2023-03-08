@@ -16,12 +16,12 @@ export class RestrictionsController {
     @Post('/read/records/user/:restrictedUserId')
     public createRestrictionToReadRecordsForUser(
         @Param('restrictedUserId', ParseIntPipe) restrictedUserId: number,
-        @CurrentUserIdDecorator() currentUserId: number,
-    ): Promise<UserRestrictionsEntity> {
-        return this.restrictionsService.createRestrictionForUser(
+        @CurrentUserIdDecorator() initiatorUserId: number,
+    ): Promise<any> {
+        return this.restrictionsService.throwForbiddenExceptionIfRestricted(
             Actions.READ,
             Subjects.RECORDS,
-            currentUserId,
+            initiatorUserId,
             restrictedUserId,
         );
     }
@@ -29,12 +29,12 @@ export class RestrictionsController {
     @Post('/read/records/user/:restrictedUserId')
     public createRestrictionToReadCommentsForUser(
         @Param('restrictedUserId', ParseIntPipe) restrictedUserId: number,
-        @CurrentUserIdDecorator() currentUserId: number,
+        @CurrentUserIdDecorator() initiatorUserId: number,
     ): Promise<UserRestrictionsEntity> {
         return this.restrictionsService.createRestrictionForUser(
             Actions.READ,
             Subjects.COMMENTS,
-            currentUserId,
+            initiatorUserId,
             restrictedUserId,
         );
     }
