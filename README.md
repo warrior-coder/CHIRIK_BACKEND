@@ -20,12 +20,6 @@ Build the project:
 npm run build
 ```
 
-Run migrations:
-
-```SH
-npm run typeorm migration:run -- -d ./configs/data-source.ts
-```
-
 Start application in development mode:
 
 ```SH
