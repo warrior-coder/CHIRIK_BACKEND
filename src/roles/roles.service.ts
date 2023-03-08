@@ -36,6 +36,22 @@ export class RolesService {
         return role;
     }
 
+    public getUserRoles(user: UsersEntity) {
+        if (!user) {
+            throw new NotFoundException('User not found.');
+        }
+
+        return this.pgConnection.rows<RolesEntity>(
+            `
+                SELECT r.*
+                FROM public.roles AS r
+                INNER JOIN public.users_roles AS ur ON r.id = ur.role_id
+                WHERE ur.user_id = $1::INT;
+            `,
+            [user.id],
+        );
+    }
+
     public async getDefaultRole() {
         const queryResultRows = await this.pgConnection.rows<RolesEntity>(
             `

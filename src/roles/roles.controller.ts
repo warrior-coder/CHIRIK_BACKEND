@@ -46,4 +46,11 @@ export class RolesController {
 
         return this.rolesService.setRoleForUser(role, user);
     }
+
+    @Get('/user/:userId')
+    public async getUserRoles(@Param('userId', ParseIntPipe) userId: number) {
+        const user = await this.usersService.getUserById(userId);
+
+        return this.rolesService.getUserRoles(user);
+    }
 }
