@@ -12,6 +12,17 @@ export class RestrictionsService {
         private readonly rolesService: RolesService,
     ) {}
 
+    public getUserRestrictions(initiatorUserId: number): Promise<UserRestrictionsEntity[]> {
+        return this.pgConnection.rows<UserRestrictionsEntity>(
+            `
+                SELECT ur.*
+                FROM public.user_restrictions AS ur
+                WHERE ur.initiator_user_id = $1::INT;
+            `,
+            [initiatorUserId],
+        );
+    }
+
     public async createRestrictionForUser(
         action: string,
         subject: string,
@@ -20,9 +31,9 @@ export class RestrictionsService {
     ): Promise<UserRestrictionsEntity> {
         const insertedRows: UserRestrictionsEntity[] = await this.pgConnection.rows<UserRestrictionsEntity>(
             `
-                INSERT INTO public.user_restrictions("action", "subject", user_id, restricted_user_id)
+                INSERT INTO public.user_restrictions("action", "subject", initiator_user_id, restricted_user_id)
                 VALUES ($1::VARCHAR(16), $2::VARCHAR(16), $3::INT, $4::INT)
-                RETURNING id, "action", "subject", user_id, restricted_user_id;
+                RETURNING id, "action", "subject", initiator_user_id, restricted_user_id;
             `,
             [action, subject, initiatorUserId, restrictedUserId],
         );
@@ -50,7 +61,7 @@ export class RestrictionsService {
                     FROM public.user_restrictions AS ur
                     WHERE ur."action" = $1::VARCHAR(16)
                         AND ur."subject" = $2::VARCHAR(16)
-                        AND ur.user_id = $3::INT
+                        AND ur.initiator_user_id = $3::INT
                         AND ur.restricted_user_id = $4::INT
                 ) AS is_restricted;
             `,

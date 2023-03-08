@@ -1,4 +1,4 @@
-import { Controller, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '@app/auth';
 import { CurrentUserIdDecorator } from 'src/auth/decorators/current-user.decorator';
@@ -12,6 +12,11 @@ import { RestrictionsService } from '../services/restrictions.service';
 @Controller('/restrictions')
 export class RestrictionsController {
     constructor(private readonly restrictionsService: RestrictionsService) {}
+
+    @Get('/')
+    public getCurrentUserRestrictions(@CurrentUserIdDecorator() initiatorUserId: number) {
+        return this.restrictionsService.getUserRestrictions(initiatorUserId);
+    }
 
     @Post('/read/records/user/:restrictedUserId')
     public createRestrictionToReadRecordsForUser(
