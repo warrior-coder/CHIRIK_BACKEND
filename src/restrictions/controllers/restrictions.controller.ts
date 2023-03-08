@@ -18,7 +18,7 @@ export class RestrictionsController {
         @Param('restrictedUserId', ParseIntPipe) restrictedUserId: number,
         @CurrentUserIdDecorator() initiatorUserId: number,
     ): Promise<any> {
-        return this.restrictionsService.throwForbiddenExceptionIfRestricted(
+        return this.restrictionsService.createRestrictionForUser(
             Actions.READ,
             Subjects.RECORDS,
             initiatorUserId,

@@ -1,41 +1,12 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { NestPgPool, PgConnection } from 'nest-pg';
 
-import { UsersEntity } from 'src/users/entities/users.entity';
-
-import { defaultRoleValue } from '../constants/default-role-value';
-import { CreateRoleDto } from '../dto/create-role.dto';
 import { RolesEntity } from '../entities/roles.entity';
 import { UsersRolesEntity } from '../entities/users-roles.entity';
 
 @Injectable()
 export class RolesService {
     constructor(@PgConnection() private readonly pgConnection: NestPgPool) {}
-
-    public getAllRoles(): Promise<RolesEntity[]> {
-        return this.pgConnection.rows<RolesEntity>(`
-            SELECT r.*
-            FROM public.roles AS r;
-        `);
-    }
-
-    public async getRoleById(roleId: number): Promise<RolesEntity | null> {
-        const queryResultRows = await this.pgConnection.rows<RolesEntity>(
-            `
-                SELECT r.*
-                FROM public.roles AS r
-                WHERE r.id = $1::INT
-            `,
-            [roleId],
-        );
-        const role: RolesEntity | undefined = queryResultRows[0];
-
-        if (!role) {
-            return null;
-        }
-
-        return role;
-    }
 
     public getUserRoles(userId: number): Promise<RolesEntity[]> {
         return this.pgConnection.rows<RolesEntity>(
@@ -49,47 +20,22 @@ export class RolesService {
         );
     }
 
-    public async getDefaultRole(): Promise<RolesEntity> {
+    public async getRoleByValue(roleValue: string): Promise<RolesEntity | null> {
         const queryResultRows = await this.pgConnection.rows<RolesEntity>(
             `
                 SELECT r.*
                 FROM public.roles AS r
                 WHERE r.value = $1::VARCHAR(16)
             `,
-            [defaultRoleValue],
+            [roleValue],
         );
         const role: RolesEntity | undefined = queryResultRows[0];
 
         if (!role) {
-            throw new InternalServerErrorException('Default role not defined');
+            return null;
         }
 
         return role;
-    }
-
-    public async createRole(createRoleDto: CreateRoleDto): Promise<RolesEntity> {
-        const insertedRows: RolesEntity[] = await this.pgConnection.rows<RolesEntity>(
-            `
-                INSERT INTO public.roles("value")
-                VALUES ($1::VARCHAR(16))
-                RETURNING id, "value";
-            `,
-            [createRoleDto.value],
-        );
-        const role: RolesEntity = insertedRows[0];
-
-        return role;
-    }
-
-    public deleteRole(roleId: number): Promise<any> {
-        return this.pgConnection.rows<any>(
-            `
-                DELETE
-                FROM public.roles AS r
-                WHERE r.id = $1::INT;
-            `,
-            [roleId],
-        );
     }
 
     public async setRoleForUser(roleId: number, userId: number): Promise<UsersRolesEntity> {
@@ -104,5 +50,22 @@ export class RolesService {
         const userRoleConnection: UsersRolesEntity = insertedRows[0];
 
         return userRoleConnection;
+    }
+
+    public async isUserHasRoleByValue(userId: number, roleValue: string): Promise<boolean> {
+        const existsRows: boolean[] = await this.pgConnection.rows<boolean>(
+            `
+                SELECT EXISTS(
+                    SELECT ur.*
+                    FROM public.users_roles AS ur
+                    INNER JOIN roles AS r ON r.id = ur.role_id
+                    WHERE ur.user_id = $1 AND r."value" = $2::VARCHAR(16)
+                ) is_user_has_role_value;
+            `,
+            [userId, roleValue],
+        );
+        const isUserHasRoleValue = Boolean(existsRows[0]['is_user_has_role_value']);
+
+        return isUserHasRoleValue;
     }
 }
