@@ -5,9 +5,13 @@ import { Request, Response } from 'express';
 export class AllExceptionsFilter implements ExceptionFilter {
     public catch(exception: unknown, host: ArgumentsHost): void {
         const context = host.switchToHttp();
+
         const response = context.getResponse<Response>();
+
         const request = context.getRequest<Request>();
+
         let message: string;
+
         let statusCode: number;
 
         // determine the type of exception

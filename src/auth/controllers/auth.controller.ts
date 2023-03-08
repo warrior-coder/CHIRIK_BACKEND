@@ -6,7 +6,7 @@ import { PrivacyInfoDecorator } from 'src/auth/decorators/privacy-info.decorator
 import { ValidationPipe } from 'src/pipes/validation.pipe';
 import { RolesEntity } from 'src/roles/entities/roles.entity';
 import { UsersRolesEntity } from 'src/roles/entities/users-roles.entity';
-import { RolesService } from 'src/roles/roles.service';
+import { RolesService } from 'src/roles/services/roles.service';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';

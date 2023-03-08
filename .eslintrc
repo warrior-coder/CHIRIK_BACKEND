@@ -6,22 +6,20 @@
     },
     "plugins": [
         "import",
-        "@typescript-eslint/eslint-plugin",
-        "typescript-sort-keys",
-        "sort-destructure-keys"
+        "@typescript-eslint/eslint-plugin"
     ],
     "extends": [
         "plugin:@typescript-eslint/recommended",
         "plugin:prettier/recommended",
-        "plugin:@typescript-eslint/eslint-recommended",
-        "plugin:typescript-sort-keys/recommended"
+        "plugin:@typescript-eslint/eslint-recommended"
     ],
     "root": true,
     "env": {
-        "node": true,
-        "jest": true
+        "node": true
     },
-    "ignorePatterns": [".eslintrc"],
+    "ignorePatterns": [
+        ".eslintrc"
+    ],
     "rules": {
         "prettier/prettier": [
             "warn",
@@ -31,7 +29,7 @@
             }
         ],
         "@typescript-eslint/no-unused-vars": "off",
-        "@typescript-eslint/explicit-function-return-type": "off",
+        "@typescript-eslint/explicit-function-return-type": "warn",
         "@typescript-eslint/explicit-member-accessibility": [
             "warn",
             {
@@ -43,14 +41,10 @@
                 }
             }
         ],
-        "@typescript-eslint/explicit-module-boundary-types": "off",
-        "@typescript-eslint/interface-name-prefix": "off",
-        "@typescript-eslint/no-empty-interface": "off",
+        "@typescript-eslint/explicit-module-boundary-types": "warn",
+        "@typescript-eslint/no-empty-interface": "warn",
         "@typescript-eslint/no-explicit-any": "off",
-        "arrow-parens": ["warn", "always"],
-        "sort-destructure-keys/sort-destructure-keys": 2,
-        "typescript-sort-keys/interface": "off",
-        "typescript-sort-keys/string-enum": "warn",
+        "arrow-parens": "warn",
         "import/order": [
             "warn",
             {
@@ -58,14 +52,31 @@
                     "caseInsensitive": true,
                     "order": "asc"
                 },
-                "groups": [["builtin", "external"], "internal", "parent", "sibling", "index"],
+                "groups": [
+                    [
+                        "builtin",
+                        "external"
+                    ],
+                    "internal",
+                    "parent",
+                    "sibling",
+                    "index"
+                ],
                 "newlines-between": "always",
-                "pathGroups": [{ "group": "internal", "pattern": "@/**" }],
+                "pathGroups": [
+                    {
+                        "group": "internal",
+                        "pattern": "@/**"
+                    }
+                ],
                 "pathGroupsExcludedImportTypes": []
             }
         ],
         "import/prefer-default-export": "off",
-        "max-classes-per-file": ["warn", 3],
+        "max-classes-per-file": [
+            "warn",
+            3
+        ],
         "no-console": "warn",
         "no-duplicate-imports": "warn",
         "no-empty-pattern": "warn",
@@ -73,22 +84,89 @@
         "require-await": "warn",
         "no-trailing-spaces": "warn",
         "object-shorthand": "error",
-        "lines-between-class-members": ["warn", "always", { "exceptAfterSingleLine": true }],
+        "lines-between-class-members": [
+            "warn",
+            "always",
+            {
+                "exceptAfterSingleLine": true
+            }
+        ],
         "padding-line-between-statements": [
             "warn",
-            { "blankLine": "any", "next": "*", "prev": ["const", "let"] },
-            { "blankLine": "always", "next": "class", "prev": "*" },
-            { "blankLine": "always", "next": "export", "prev": "*" },
-            { "blankLine": "any", "next": "export", "prev": "export" },
-            { "blankLine": "always", "next": "for", "prev": "*" },
-            { "blankLine": "always", "next": "function", "prev": "*" },
-            { "blankLine": "any", "next": "if", "prev": "*" },
-            { "blankLine": "always", "next": "*", "prev": "if" },
-            { "blankLine": "always", "next": "return", "prev": "*" },
-            { "blankLine": "always", "next": "switch", "prev": "*" },
-            { "blankLine": "always", "next": "try", "prev": "*" },
-            { "blankLine": "always", "next": "while", "prev": "*" },
-            { "blankLine": "any", "next": ["const", "let"], "prev": ["const", "let"] }
+            {
+                "blankLine": "always",
+                "next": "*",
+                "prev": [
+                    "const",
+                    "let"
+                ]
+            },
+            {
+                "blankLine": "always",
+                "next": "class",
+                "prev": "*"
+            },
+            {
+                "blankLine": "always",
+                "next": "export",
+                "prev": "*"
+            },
+            {
+                "blankLine": "any",
+                "next": "export",
+                "prev": "export"
+            },
+            {
+                "blankLine": "always",
+                "next": "for",
+                "prev": "*"
+            },
+            {
+                "blankLine": "always",
+                "next": "function",
+                "prev": "*"
+            },
+            {
+                "blankLine": "any",
+                "next": "if",
+                "prev": "*"
+            },
+            {
+                "blankLine": "always",
+                "next": "*",
+                "prev": "if"
+            },
+            {
+                "blankLine": "always",
+                "next": "return",
+                "prev": "*"
+            },
+            {
+                "blankLine": "always",
+                "next": "switch",
+                "prev": "*"
+            },
+            {
+                "blankLine": "always",
+                "next": "try",
+                "prev": "*"
+            },
+            {
+                "blankLine": "always",
+                "next": "while",
+                "prev": "*"
+            },
+            {
+                "blankLine": "always",
+                "next": [
+                    "const",
+                    "let"
+                ],
+                "prev": [
+                    "const",
+                    "let"
+                ]
+            }
         ]
     },
     "settings": {

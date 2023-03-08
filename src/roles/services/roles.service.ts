@@ -1,11 +1,12 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { NestPgPool, PgConnection } from 'nest-pg';
 
-import { CreateRoleDto } from './dto/create-role.dto';
-import { RolesEntity } from './entities/roles.entity';
 import { UsersEntity } from 'src/users/entities/users.entity';
-import { UsersRolesEntity } from './entities/users-roles.entity';
-import { defaultRoleValue } from './constants/default-role-value';
+
+import { defaultRoleValue } from '../constants/default-role-value';
+import { CreateRoleDto } from '../dto/create-role.dto';
+import { RolesEntity } from '../entities/roles.entity';
+import { UsersRolesEntity } from '../entities/users-roles.entity';
 
 @Injectable()
 export class RolesService {
@@ -69,7 +70,6 @@ export class RolesService {
 
         return role;
     }
-    
 
     public async createRole(createRoleDto: CreateRoleDto): Promise<RolesEntity> {
         const insertedRows: RolesEntity[] = await this.pgConnection.rows<RolesEntity>(

@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post } from '@nestj
 
 import { UsersService } from 'src/users/services/users.service';
 
-import { CreateRoleDto } from './dto/create-role.dto';
-import { RolesService } from './roles.service';
+import { CreateRoleDto } from '../dto/create-role.dto';
+import { RolesService } from '../services/roles.service';
 
 @Controller('/roles')
 export class RolesController {
