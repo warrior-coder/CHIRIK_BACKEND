@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
-import { RestrictionsController } from './restrictions.controller';
-import { RestrictionsService } from './restrictions.service';
+import { RestrictionsController } from './controllers/restrictions.controller';
+import { RestrictionsService } from './services/restrictions.service';
 
 @Module({
     controllers: [RestrictionsController],

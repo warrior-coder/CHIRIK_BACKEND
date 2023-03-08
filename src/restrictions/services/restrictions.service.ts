@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { NestPgPool, PgConnection } from 'nest-pg';
 
-import { UserRestrictionsEntity } from './entities/user-restrictions.entity';
+import { UserRestrictionsEntity } from '../entities/user-restrictions.entity';
 
 @Injectable()
 export class RestrictionsService {
     constructor(@PgConnection() private readonly pgConnection: NestPgPool) {}
 
-    public async createRestrictionToReadRecordsForUser(
+    public async createRestrictionForUser(
         action: string,
         subject: string,
         userId: number,

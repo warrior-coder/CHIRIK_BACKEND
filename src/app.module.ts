@@ -12,7 +12,7 @@ import { AuthMiddleware } from './auth/middlewares/auth.middleware';
 import { CommentsController } from './records/controllers/comments.controller';
 import { RecordsController } from './records/controllers/records.controller';
 import { RecordsModule } from './records/records.module';
-import { RestrictionsController } from './restrictions/restrictions.controller';
+import { RestrictionsController } from './restrictions/controllers/restrictions.controller';
 import { RestrictionsModule } from './restrictions/restrictions.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersController } from './users/controllers/users.controller';
