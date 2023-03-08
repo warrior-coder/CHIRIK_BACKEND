@@ -15,7 +15,9 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 
 import { AuthGuard } from '@app/auth';
 import { CurrentUserIdDecorator } from 'src/auth/decorators/current-user.decorator';
-import { UsersService } from 'src/users/services/users.service';
+import { Actions } from 'src/restrictions/enums/actions.enum';
+import { Subjects } from 'src/restrictions/enums/subjects.enum';
+import { RestrictionsService } from 'src/restrictions/services/restrictions.service';
 
 import { CreateRecordDto } from '../dto/create-record.dto';
 import { RecordsService } from '../services/records.service';
@@ -23,16 +25,27 @@ import { RecordsService } from '../services/records.service';
 @UseGuards(AuthGuard)
 @Controller('/records')
 export class RecordsController {
-    constructor(private readonly usersService: UsersService, private readonly recordsService: RecordsService) {}
+    constructor(
+        private readonly recordsService: RecordsService,
+        private readonly restrictionsService: RestrictionsService,
+    ) {}
 
     @Get('/user/:userId')
-    public async getAllUserRecords(@Param('userId', ParseIntPipe) userId: number) {
-        const user = await this.usersService.getUserById(userId);
+    public async getAllUserRecords(
+        @Param('userId', ParseIntPipe) userId: number,
+        @CurrentUserIdDecorator() currentUserId: number,
+    ) {
+        await this.restrictionsService.throwForbiddenExceptionIfRestricted(
+            Actions.READ,
+            Subjects.RECORDS,
+            userId,
+            currentUserId,
+        );
 
-        return this.recordsService.getAllUserRecords(user);
+        return this.recordsService.getAllUserRecords(userId);
     }
 
-    @Get('/all')
+    @Get('/')
     public getAllRecords() {
         return this.recordsService.getAllRecords();
     }
@@ -55,10 +68,8 @@ export class RecordsController {
     }
 
     @Delete('/:recordId')
-    public async deleteRecordById(@Param('recordId', ParseIntPipe) recordId: number) {
-        const record = await this.recordsService.getRecordById(recordId);
-
-        return this.recordsService.deleteRecord(record);
+    public deleteRecordById(@Param('recordId', ParseIntPipe) recordId: number) {
+        return this.recordsService.deleteRecord(recordId);
     }
 
     @Get('/:recordId')

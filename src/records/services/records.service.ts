@@ -17,11 +17,7 @@ export class RecordsService {
         @PgConnection() private readonly pgConnection: NestPgPool,
     ) {}
 
-    public async getAllUserRecords(user: UsersEntity): Promise<RecordsEntity[]> {
-        if (!user) {
-            throw new NotFoundException('User not found.');
-        }
-
+    public async getAllUserRecords(userId: number): Promise<RecordsEntity[]> {
         const allUserRecords: RecordsEntity[] = await this.pgConnection.rows<RecordsEntity>(
             `
                 SELECT r.*
@@ -30,7 +26,7 @@ export class RecordsService {
                 WHERE r.author_id = $1::INT
                 ORDER BY r.created_at DESC;
             `,
-            [user.id],
+            [userId],
         );
 
         for (const userRecord of allUserRecords) {
@@ -131,7 +127,9 @@ export class RecordsService {
         );
     }
 
-    public deleteRecord(record: RecordsEntity): Promise<any> {
+    public async deleteRecord(recordId: number): Promise<any> {
+        const record = await this.getRecordById(recordId);
+
         if (!record) {
             throw new NotFoundException('Record not found.');
         }
