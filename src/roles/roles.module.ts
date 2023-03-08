@@ -9,5 +9,6 @@ import { RolesService } from './roles.service';
     controllers: [RolesController],
     providers: [RolesService],
     imports: [UsersModule],
+    exports: [RolesService],
 })
 export class RolesModule {}
