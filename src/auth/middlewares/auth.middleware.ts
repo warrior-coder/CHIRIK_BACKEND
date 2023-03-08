@@ -11,7 +11,7 @@ import { RequestWithUser } from '../interfaces/request-with-user.interface';
 export class AuthMiddleware implements NestMiddleware {
     constructor(private readonly usersService: UsersService, @InjectRedis() private readonly redisRepository: Redis) {}
 
-    public async use(request: RequestWithUser, response: Response, next: NextFunction) {
+    public async use(request: RequestWithUser, response: Response, next: NextFunction): Promise<void> {
         const sessionId = request.cookies['SESSION_ID'];
 
         if (!sessionId) {

@@ -37,7 +37,7 @@ export class RolesService {
         return role;
     }
 
-    public getUserRoles(user: UsersEntity) {
+    public getUserRoles(user: UsersEntity): Promise<RolesEntity[]> {
         if (!user) {
             throw new NotFoundException('User not found.');
         }
@@ -53,7 +53,7 @@ export class RolesService {
         );
     }
 
-    public async getDefaultRole() {
+    public async getDefaultRole(): Promise<RolesEntity> {
         const queryResultRows = await this.pgConnection.rows<RolesEntity>(
             `
                 SELECT r.*

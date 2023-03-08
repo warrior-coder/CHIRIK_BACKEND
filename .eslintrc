@@ -84,13 +84,7 @@
         "require-await": "warn",
         "no-trailing-spaces": "warn",
         "object-shorthand": "error",
-        "lines-between-class-members": [
-            "warn",
-            "always",
-            {
-                "exceptAfterSingleLine": true
-            }
-        ],
+        "lines-between-class-members": "warn",
         "padding-line-between-statements": [
             "warn",
             {
@@ -157,7 +151,7 @@
                 "prev": "*"
             },
             {
-                "blankLine": "always",
+                "blankLine": "any",
                 "next": [
                     "const",
                     "let"
