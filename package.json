@@ -1,8 +1,8 @@
 {
-  "name": "twitter_backend_internship_task",
+  "name": "chirik_backend",
   "version": "0.0.1",
   "description": "",
-  "author": "alex-gudkov-innowise",
+  "author": "warrior-coder",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -14,25 +14,19 @@
     "start:prod": "node dist/main",
     "prettier:write": "prettier --write ./src/**/*.ts",
     "prettier:check": "prettier --check ./src/**/*.ts",
-    "eslint:fix": "eslint --fix --max-warnings=0 ./src/**/*.ts",
-    "typeorm": "typeorm-ts-node-commonjs"
+    "eslint:fix": "eslint --fix --max-warnings=0 ./src/**/*.ts"
   },
   "dependencies": {
-    "@casl/ability": "^6.3.3",
     "@nestjs-modules/ioredis": "^1.0.1",
     "@nestjs-modules/mailer": "^1.8.1",
     "@nestjs/common": "^9.0.0",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.0.0",
-    "@nestjs/jwt": "^10.0.1",
     "@nestjs/platform-express": "^9.0.0",
     "@nestjs/serve-static": "^3.0.0",
-    "@nestjs/typeorm": "^9.0.1",
     "@types/bcryptjs": "^2.4.2",
-    "@types/cache-manager": "^4.0.2",
     "bcryptjs": "^2.4.3",
     "cache-manager": "^5.1.4",
-    "cache-manager-redis-store": "^3.0.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "cookie-parser": "^1.4.6",
@@ -43,13 +37,11 @@
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
-    "typeorm": "^0.3.11",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
     "@nestjs/schematics": "^9.0.0",
-    "@types/cache-manager-redis-store": "^2.0.1",
     "@types/cookie-parser": "^1.4.3",
     "@types/express": "^4.17.13",
     "@types/multer": "^1.4.7",
