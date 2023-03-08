@@ -74,13 +74,9 @@ export class RecordsService {
 
     public async createRecord(
         createRecordDto: CreateRecordDto,
-        author: UsersEntity,
+        authorId: number,
         imageFiles: Array<Express.Multer.File> = [],
     ): Promise<any> {
-        if (!author) {
-            throw new NotFoundException('Author not found.');
-        }
-
         if (!createRecordDto.text) {
             throw new BadRequestException('Record has no text.');
         }
@@ -91,7 +87,7 @@ export class RecordsService {
                 VALUES ($1::TEXT, $2::INT)
                 RETURNING id, "text", created_at, author_id;
             `,
-            [createRecordDto.text, author.id],
+            [createRecordDto.text, authorId],
         );
         const record: RecordsEntity = insertedRows[0];
 
@@ -214,74 +210,46 @@ export class RecordsService {
         return record;
     }
 
-    public async createLikeOnRecord(record: RecordsEntity, user: UsersEntity): Promise<RecordLikesEntity> {
-        if (!record) {
-            throw new NotFoundException('Record not found.');
-        }
-
-        if (!user) {
-            throw new NotFoundException('User not found.');
-        }
-
+    public async createLikeOnRecord(recordId: number, userId: number): Promise<RecordLikesEntity> {
         const insertedRows: RecordLikesEntity[] = await this.pgConnection.rows<RecordLikesEntity>(
             `
                 INSERT INTO record_likes(record_id, user_id)
                 VALUES ($1::INT, $2::INT)
                 RETURNING id, record_id, user_id;
             `,
-            [record.id, user.id],
+            [recordId, userId],
         );
         const recordLike: RecordLikesEntity = insertedRows[0];
 
         return recordLike;
     }
 
-    public deleteLikeFromRecord(record: RecordsEntity, user: UsersEntity): Promise<any> {
-        if (!record) {
-            throw new NotFoundException('Record not found.');
-        }
-
-        if (!user) {
-            throw new NotFoundException('User not found.');
-        }
-
+    public deleteLikeFromRecord(recordId: number, userId: number): Promise<any> {
         return this.pgConnection.rows<any>(
             `
                 DELETE
                 FROM record_likes AS rl
                 WHERE rl.record_id = $1::INT AND rl.user_id = $2::INT;
             `,
-            [record.id, user.id],
+            [recordId, userId],
         );
     }
 
-    public async getRecordLikesCount(record: RecordsEntity): Promise<number> {
-        if (!record) {
-            throw new NotFoundException('Record not found.');
-        }
-
+    public async getRecordLikesCount(recordId: number): Promise<number> {
         const queryResultRows = await this.pgConnection.rows<any>(
             `
                 SELECT COUNT(*) AS record_likes_count
                 FROM record_likes AS rl
                 WHERE rl.record_id = $1::INT;
             `,
-            [record.id],
+            [recordId],
         );
         const recordLikesCount: number = parseInt(queryResultRows[0]['record_likes_count']);
 
         return recordLikesCount;
     }
 
-    public async getIsLikeOnRecordExists(record: RecordsEntity, user: UsersEntity): Promise<boolean> {
-        if (!record) {
-            throw new NotFoundException('Record not found.');
-        }
-
-        if (!user) {
-            throw new NotFoundException('User not found.');
-        }
-
+    public async getIsLikeOnRecordExists(recordId: number, userId: number): Promise<boolean> {
         const queryResultRows = await this.pgConnection.rows<any>(
             `
                 SELECT EXISTS(
@@ -290,7 +258,7 @@ export class RecordsService {
                     WHERE rl.record_id = $1::INT AND rl.user_id = $2::INT
                 ) AS is_like_exists;
             `,
-            [record.id, user.id],
+            [recordId, userId],
         );
 
         const isLikeOnRecordExists = Boolean(queryResultRows[0]['is_like_exists']);

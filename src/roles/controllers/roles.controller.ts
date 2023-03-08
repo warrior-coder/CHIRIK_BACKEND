@@ -7,7 +7,7 @@ import { RolesService } from '../services/roles.service';
 
 @Controller('/roles')
 export class RolesController {
-    constructor(private readonly rolesService: RolesService, private readonly usersService: UsersService) {}
+    constructor(private readonly rolesService: RolesService) {}
 
     @Get('/')
     public getAllRoles() {
@@ -30,27 +30,20 @@ export class RolesController {
     }
 
     @Delete('/:roleId')
-    public async deleteRoleById(@Param('roleId', ParseIntPipe) roleId: number) {
-        const role = await this.rolesService.getRoleById(roleId);
-
-        return this.rolesService.deleteRole(role);
+    public deleteRoleById(@Param('roleId', ParseIntPipe) roleId: number) {
+        return this.rolesService.deleteRole(roleId);
     }
 
     @Post('/:roleId/for-user/:userId')
-    public async setRoleForUser(
+    public setRoleForUser(
         @Param('roleId', ParseIntPipe) roleId: number,
         @Param('userId', ParseIntPipe) userId: number,
     ) {
-        const role = await this.rolesService.getRoleById(roleId);
-        const user = await this.usersService.getUserById(userId);
-
-        return this.rolesService.setRoleForUser(role, user);
+        return this.rolesService.setRoleForUser(roleId, userId);
     }
 
     @Get('/user/:userId')
-    public async getUserRoles(@Param('userId', ParseIntPipe) userId: number) {
-        const user = await this.usersService.getUserById(userId);
-
-        return this.rolesService.getUserRoles(user);
+    public getUserRoles(@Param('userId', ParseIntPipe) userId: number) {
+        return this.rolesService.getUserRoles(userId);
     }
 }

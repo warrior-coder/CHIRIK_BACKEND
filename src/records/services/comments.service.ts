@@ -50,17 +50,9 @@ export class CommentsService {
 
     public async createCommentOnRecord(
         createCommentDto: CreateCommentDto,
-        author: UsersEntity,
-        record: RecordsEntity,
+        authorId: number,
+        recordId: number,
     ): Promise<RecordCommentsEntity> {
-        if (!author) {
-            throw new NotFoundException('Author not found.');
-        }
-
-        if (!record) {
-            throw new NotFoundException('Record not found.');
-        }
-
         if (!createCommentDto.text) {
             throw new BadRequestException('Comment has no text.');
         }
@@ -71,7 +63,7 @@ export class CommentsService {
                 VALUES ($1::TEXT, $2::INT, $3::INT)
                 RETURNING id, "text", author_id, record_id;
             `,
-            [createCommentDto.text, author.id, record.id],
+            [createCommentDto.text, authorId, recordId],
         );
         const comment: RecordCommentsEntity = insertedRows[0];
 

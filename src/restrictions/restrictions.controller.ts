@@ -1,8 +1,7 @@
 import { Controller, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '@app/auth';
-import { CurrentUserDecorator } from 'src/auth/decorators/current-user.decorator';
-import { UsersEntity } from 'src/users/entities/users.entity';
+import { CurrentUserIdDecorator } from 'src/auth/decorators/current-user.decorator';
 
 import { UserRestrictionsEntity } from './entities/user-restrictions.entity';
 import { RestrictionsService } from './restrictions.service';
@@ -15,12 +14,12 @@ export class RestrictionsController {
     @Post('/read/records/user/:restrictedUserId')
     public createRestrictionToReadRecordsForUser(
         @Param('restrictedUserId', ParseIntPipe) restrictedUserId: number,
-        @CurrentUserDecorator() currentUser: UsersEntity,
+        @CurrentUserIdDecorator() currentUserId: number,
     ): Promise<UserRestrictionsEntity> {
         return this.restrictionsService.createRestrictionToReadRecordsForUser(
             'read',
             'records',
-            currentUser.id,
+            currentUserId,
             restrictedUserId,
         );
     }

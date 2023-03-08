@@ -37,11 +37,7 @@ export class RolesService {
         return role;
     }
 
-    public getUserRoles(user: UsersEntity): Promise<RolesEntity[]> {
-        if (!user) {
-            throw new NotFoundException('User not found.');
-        }
-
+    public getUserRoles(userId: number): Promise<RolesEntity[]> {
         return this.pgConnection.rows<RolesEntity>(
             `
                 SELECT r.*
@@ -49,7 +45,7 @@ export class RolesService {
                 INNER JOIN public.users_roles AS ur ON r.id = ur.role_id
                 WHERE ur.user_id = $1::INT;
             `,
-            [user.id],
+            [userId],
         );
     }
 
@@ -85,37 +81,25 @@ export class RolesService {
         return role;
     }
 
-    public deleteRole(role: RolesEntity): Promise<any> {
-        if (!role) {
-            throw new NotFoundException('Role not found.');
-        }
-
+    public deleteRole(roleId: number): Promise<any> {
         return this.pgConnection.rows<any>(
             `
                 DELETE
                 FROM public.roles AS r
                 WHERE r.id = $1::INT;
             `,
-            [role.id],
+            [roleId],
         );
     }
 
-    public async setRoleForUser(role: RolesEntity, user: UsersEntity): Promise<UsersRolesEntity> {
-        if (!user) {
-            throw new NotFoundException('User not found.');
-        }
-
-        if (!role) {
-            throw new NotFoundException('Role not found.');
-        }
-
+    public async setRoleForUser(roleId: number, userId: number): Promise<UsersRolesEntity> {
         const insertedRows: UsersRolesEntity[] = await this.pgConnection.rows<UsersRolesEntity>(
             `
                 INSERT INTO public.users_roles(user_id, role_id)
                 VALUES ($1::INT, $2::INT)
                 RETURNING user_id, role_id;
             `,
-            [user.id, role.id],
+            [userId, roleId],
         );
         const userRoleConnection: UsersRolesEntity = insertedRows[0];
 

@@ -7,7 +7,6 @@ import {
     ParseIntPipe,
     Patch,
     Post,
-    Req,
     UploadedFiles,
     UseGuards,
     UseInterceptors,
@@ -15,12 +14,10 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 
 import { AuthGuard } from '@app/auth';
-import { CurrentUserDecorator } from 'src/auth/decorators/current-user.decorator';
-import { UsersEntity } from 'src/users/entities/users.entity';
+import { CurrentUserIdDecorator } from 'src/auth/decorators/current-user.decorator';
 import { UsersService } from 'src/users/services/users.service';
 
 import { CreateRecordDto } from '../dto/create-record.dto';
-import { EditRecordDto } from '../dto/edit-record.dto';
 import { RecordsService } from '../services/records.service';
 
 @UseGuards(AuthGuard)
@@ -44,10 +41,10 @@ export class RecordsController {
     @UseInterceptors(FilesInterceptor('imageFiles'))
     public createRecord(
         @Body() createRecordDto: CreateRecordDto,
-        @CurrentUserDecorator() author: UsersEntity,
+        @CurrentUserIdDecorator() currentUserId: number,
         @UploadedFiles() imageFiles: Array<Express.Multer.File>,
     ) {
-        return this.recordsService.createRecord(createRecordDto, author, imageFiles);
+        return this.recordsService.createRecord(createRecordDto, currentUserId, imageFiles);
     }
 
     @Patch('/:recordId')
@@ -70,39 +67,31 @@ export class RecordsController {
     }
 
     @Post('/:recordId/like')
-    public async createLikeOnRecord(
+    public createLikeOnRecord(
         @Param('recordId', ParseIntPipe) recordId: number,
-        @CurrentUserDecorator() currentUser: UsersEntity,
+        @CurrentUserIdDecorator() currentUserId: number,
     ) {
-        const record = await this.recordsService.getRecordById(recordId);
-
-        return this.recordsService.createLikeOnRecord(record, currentUser);
+        return this.recordsService.createLikeOnRecord(recordId, currentUserId);
     }
 
     @Delete('/:recordId/like')
-    public async deleteLikeFromRecord(
+    public deleteLikeFromRecord(
         @Param('recordId', ParseIntPipe) recordId: number,
-        @CurrentUserDecorator() currentUser: UsersEntity,
+        @CurrentUserIdDecorator() currentUserId: number,
     ) {
-        const record = await this.recordsService.getRecordById(recordId);
-
-        return this.recordsService.deleteLikeFromRecord(record, currentUser);
+        return this.recordsService.deleteLikeFromRecord(recordId, currentUserId);
     }
 
     @Get('/:recordId/likes-count')
-    public async getRecordLikesCount(@Param('recordId') recordId: number) {
-        const record = await this.recordsService.getRecordById(recordId);
-
-        return this.recordsService.getRecordLikesCount(record);
+    public getRecordLikesCount(@Param('recordId') recordId: number) {
+        return this.recordsService.getRecordLikesCount(recordId);
     }
 
     @Get('/:recordId/is-like-exists')
-    public async getIsLikeOnRecordExists(
+    public getIsLikeOnRecordExists(
         @Param('recordId') recordId: number,
-        @CurrentUserDecorator() currentUser: UsersEntity,
+        @CurrentUserIdDecorator() currentUserId: number,
     ) {
-        const record = await this.recordsService.getRecordById(recordId);
-
-        return this.recordsService.getIsLikeOnRecordExists(record, currentUser);
+        return this.recordsService.getIsLikeOnRecordExists(recordId, currentUserId);
     }
 }

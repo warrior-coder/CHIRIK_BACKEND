@@ -29,7 +29,7 @@
             }
         ],
         "@typescript-eslint/no-unused-vars": "off",
-        "@typescript-eslint/explicit-function-return-type": "warn",
+        "@typescript-eslint/explicit-function-return-type": "off",
         "@typescript-eslint/explicit-member-accessibility": [
             "warn",
             {
@@ -41,7 +41,7 @@
                 }
             }
         ],
-        "@typescript-eslint/explicit-module-boundary-types": "warn",
+        "@typescript-eslint/explicit-module-boundary-types": "off",
         "@typescript-eslint/no-empty-interface": "warn",
         "@typescript-eslint/no-explicit-any": "off",
         "arrow-parens": "warn",

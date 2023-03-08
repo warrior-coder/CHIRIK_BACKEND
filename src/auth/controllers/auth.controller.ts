@@ -33,7 +33,7 @@ export class AuthController {
         const signUpUserDto = await this.authService.confirmEmailAndGetSignUpUserDto(verificationCodeDto.value);
         const { user, userSession } = await this.authService.registerUser(signUpUserDto, privacyInfo);
         const defaultRole: RolesEntity = await this.rolesService.getDefaultRole();
-        const userRole: UsersRolesEntity = await this.rolesService.setRoleForUser(defaultRole, user);
+        const userRole: UsersRolesEntity = await this.rolesService.setRoleForUser(defaultRole.id, user.id);
 
         response.cookie('SESSION_ID', userSession.id, {
             expires: new Date(new Date().getTime() + 10 * 60 * 1000),
