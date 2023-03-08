@@ -1,19 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { RecordsEntity } from 'src/records/entities/records.entity';
 
-@Entity({ name: 'users' })
-export class UsersEntity {
-    @PrimaryGeneratedColumn()
+export interface UsersEntity {
     id: number;
-
-    @Column({ nullable: false })
     name: string;
-
-    @Column({ unique: true, nullable: false })
     email: string;
-
-    @Column({ nullable: false })
     password: string;
+    created_at: string;
 
-    @Column({ name: 'created_at', type: 'timestamp', default: () => 'NOW()' })
-    createdAt: string;
+    records?: RecordsEntity[];
 }

@@ -1,11 +1,9 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { NestPgModule } from 'nest-pg';
 
 import { NestPgConfig } from 'configs/nest-pg.config';
-import { TypeOrmConfig } from 'configs/typeorm-config';
 
 import { ServeStaticConfig } from '../configs/serve-static-config';
 
@@ -26,7 +24,6 @@ import { UsersModule } from './users/users.module';
             isGlobal: true,
         }),
         NestPgModule.registerAsync({ useClass: NestPgConfig }),
-        TypeOrmModule.forRootAsync({ useClass: TypeOrmConfig }),
         ServeStaticModule.forRootAsync({ useClass: ServeStaticConfig }),
         UsersModule,
         AuthModule,

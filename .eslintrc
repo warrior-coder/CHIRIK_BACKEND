@@ -49,7 +49,7 @@
         "@typescript-eslint/no-explicit-any": "off",
         "arrow-parens": ["warn", "always"],
         "sort-destructure-keys/sort-destructure-keys": 2,
-        "typescript-sort-keys/interface": "warn",
+        "typescript-sort-keys/interface": "off",
         "typescript-sort-keys/string-enum": "warn",
         "import/order": [
             "warn",
