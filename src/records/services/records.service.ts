@@ -1,7 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { NestPgPool, PgConnection } from 'nest-pg';
-import { Repository } from 'typeorm';
 
 import { FilesService } from '@app/files';
 import { UsersEntity } from 'src/users/entities/users.entity';
@@ -15,7 +13,6 @@ import { RecordsEntity } from '../entities/records.entity';
 @Injectable()
 export class RecordsService {
     constructor(
-        @InjectRepository(RecordsEntity) private readonly recordsRepository: Repository<RecordsEntity>,
         private readonly filesService: FilesService,
         @PgConnection() private readonly pgConnection: NestPgPool,
     ) {}
