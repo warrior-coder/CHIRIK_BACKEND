@@ -2,29 +2,34 @@
 
 ESLint packages:
 
-```SH
+```TEXT
 npm install -d @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint-plugin-prettier eslint-plugin-sort-destructure-keys eslint-plugin-typescript-sort-keys prettier --save-dev
 ```
 
-Migrations commands:
-
-```SH
-npm run typeorm migration:create -- ./migrations/<migration-name>
-npm run typeorm migration:generate -- -d ./configs/data-source.ts -p ./migrations/<migration-name>
-npm run typeorm migration:run -- -d ./configs/data-source.ts
-npm run typeorm migration:revert -- -d ./configs/data-source.ts
+Create database:
+```TEXT
+CREATE DATABASE chirik;
 ```
 
-PostgreSQL CLI in Docker:
+Run PostgreSQL script from file:
+
+```TEXT
+sudo docker cp ./migrations/up/001-create-base-tables.sql chirik_postgres:/migrations/up/001-create-base-tables.sql
+\i ./migrations/up/001-create-base-tables.sql
+```
+
+PostgreSQL CLI in Docker container:
 
 ```TEXT
 $ docker exec -i -t chirik_postgres sh
 # psql -U postgres -h localhost
+postgres=# \l
 postgres=# \c chirik
 chirik=# \dt
+chirik=# \q
 ```
 
-Redis CLI in Docker:
+Redis CLI in Docker container:
 
 ```TEXT
 $ docker exec -i -t chirik_redis sh

@@ -1,23 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DeleteResult, Repository } from 'typeorm';
+import { NestPgPool, PgConnection } from 'nest-pg';
 
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UsersEntity } from '../entities/users.entity';
 
 @Injectable()
 export class UsersService {
-    constructor(@InjectRepository(UsersEntity) private readonly usersRepository: Repository<UsersEntity>) {}
+    constructor(@PgConnection() private readonly pgConnection: NestPgPool) {}
 
     public getAllUsers(): Promise<UsersEntity[]> {
-        return this.usersRepository.query(`
+        return this.pgConnection.rows<UsersEntity>(`
             SELECT u.*
             FROM users AS u;
         `);
     }
 
     public async getUserById(userId: number): Promise<UsersEntity | null> {
-        const selectedRows: UsersEntity[] = await this.usersRepository.query(
+        const selectedRows: UsersEntity[] = await this.pgConnection.rows<UsersEntity>(
             `
                 SELECT u.*
                 FROM users AS u
@@ -36,7 +35,7 @@ export class UsersService {
     }
 
     public async getUserByEmail(userEmail: string): Promise<UsersEntity | null> {
-        const selectedRows: UsersEntity[] = await this.usersRepository.query(
+        const selectedRows: UsersEntity[] = await this.pgConnection.rows<UsersEntity>(
             `
                 SELECT u.*
                 FROM users AS u
@@ -55,7 +54,7 @@ export class UsersService {
     }
 
     public async createUser(createUserDto: CreateUserDto): Promise<UsersEntity> {
-        const insertedRows: UsersEntity[] = await this.usersRepository.query(
+        const insertedRows: UsersEntity[] = await this.pgConnection.rows<UsersEntity>(
             `
                 INSERT INTO users("name", email, "password")
                 VALUES ($1::VARCHAR(32), $2::VARCHAR(64), $3::VARCHAR(128))
@@ -68,12 +67,12 @@ export class UsersService {
         return user;
     }
 
-    public deleteUser(user: UsersEntity): Promise<DeleteResult> {
+    public deleteUser(user: UsersEntity): Promise<any> {
         if (!user) {
             throw new NotFoundException('User not found.');
         }
 
-        return this.usersRepository.query(
+        return this.pgConnection.rows<any>(
             `
                 DELETE
                 FROM users AS u

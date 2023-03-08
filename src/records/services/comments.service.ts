@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DeleteResult, Repository } from 'typeorm';
+import { NestPgPool, PgConnection } from 'nest-pg';
 
 import { UsersEntity } from 'src/users/entities/users.entity';
 
@@ -11,10 +10,10 @@ import { RecordsEntity } from '../entities/records.entity';
 
 @Injectable()
 export class CommentsService {
-    constructor(@InjectRepository(RecordsEntity) private readonly recordsRepository: Repository<RecordsEntity>) {}
+    constructor(@PgConnection() private readonly pgConnection: NestPgPool) {}
 
     public async getCommentById(commentId: number): Promise<RecordCommentsEntity | null> {
-        const selectedRows: RecordCommentsEntity[] = await this.recordsRepository.query(
+        const selectedRows: RecordCommentsEntity[] = await this.pgConnection.rows<RecordCommentsEntity>(
             `
                 SELECT rc.*
                 FROM record_comments AS rc
@@ -32,7 +31,7 @@ export class CommentsService {
     }
 
     public async getCommentByIdOrThrow(commentId: number): Promise<RecordCommentsEntity> {
-        const selectedRows: RecordCommentsEntity[] = await this.recordsRepository.query(
+        const selectedRows: RecordCommentsEntity[] = await this.pgConnection.rows<RecordCommentsEntity>(
             `
                 SELECT rc.*
                 FROM record_comments AS rc
@@ -66,7 +65,7 @@ export class CommentsService {
             throw new BadRequestException('Comment has no text.');
         }
 
-        const insertedRows: RecordCommentsEntity[] = await this.recordsRepository.query(
+        const insertedRows: RecordCommentsEntity[] = await this.pgConnection.rows<RecordCommentsEntity>(
             `
                 INSERT INTO record_comments("text", author_id, record_id)
                 VALUES ($1::TEXT, $2::INT, $3::INT)
@@ -74,12 +73,15 @@ export class CommentsService {
             `,
             [createCommentDto.text, author.id, record.id],
         );
-        const recordComment: RecordCommentsEntity = insertedRows[0];
+        const comment: RecordCommentsEntity = insertedRows[0];
 
-        return recordComment;
+        return comment;
     }
 
-    public editComment(comment: RecordCommentsEntity, editCommentDto: EditCommentDto) {
+    public async editComment(
+        comment: RecordCommentsEntity,
+        editCommentDto: EditCommentDto,
+    ): Promise<RecordCommentsEntity> {
         if (!comment) {
             throw new NotFoundException('Comment not found.');
         }
@@ -88,7 +90,7 @@ export class CommentsService {
             throw new BadRequestException('Comment has no text.');
         }
 
-        return this.recordsRepository.query(
+        const updatedRows: RecordCommentsEntity[] = await this.pgConnection.rows<RecordCommentsEntity>(
             `
                 UPDATE record_comments
                 SET "text" = $1::TEXT
@@ -97,6 +99,9 @@ export class CommentsService {
             `,
             [editCommentDto.text, comment.id],
         );
+        const updatedComment: RecordCommentsEntity = updatedRows[0];
+
+        return updatedComment;
     }
 
     public async getRecordCommentsCount(record: RecordsEntity): Promise<number> {
@@ -104,7 +109,7 @@ export class CommentsService {
             throw new NotFoundException('Record not found.');
         }
 
-        const queryResultRows = await this.recordsRepository.query(
+        const queryResultRows = await this.pgConnection.rows<any>(
             `
                 SELECT COUNT(*) AS record_comments_count
                 FROM record_comments AS rc
@@ -122,7 +127,7 @@ export class CommentsService {
             throw new NotFoundException('Record not found.');
         }
 
-        return this.recordsRepository.query(
+        return this.pgConnection.rows<RecordCommentsEntity>(
             `
                 SELECT rc.*
                 FROM record_comments AS rc
@@ -132,12 +137,12 @@ export class CommentsService {
         );
     }
 
-    public deleteComment(comment: RecordCommentsEntity): Promise<DeleteResult> {
+    public deleteComment(comment: RecordCommentsEntity): Promise<any> {
         if (!comment) {
             throw new NotFoundException('Comment not found.');
         }
 
-        return this.recordsRepository.query(
+        return this.pgConnection.rows<any>(
             `
                 DELETE
                 FROM record_comments AS rc

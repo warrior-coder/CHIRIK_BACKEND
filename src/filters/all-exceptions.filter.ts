@@ -1,4 +1,3 @@
-import { ForbiddenError } from '@casl/ability';
 import { ExceptionFilter, Catch, ArgumentsHost, HttpStatus, HttpException } from '@nestjs/common';
 import { Request, Response } from 'express';
 
@@ -15,9 +14,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
         if (exception instanceof HttpException) {
             message = exception.message;
             statusCode = exception.getStatus();
-        } else if (exception instanceof ForbiddenError) {
-            message = exception.message;
-            statusCode = HttpStatus.FORBIDDEN;
         } else if (exception instanceof Error) {
             message = exception.message;
             statusCode = HttpStatus.INTERNAL_SERVER_ERROR;

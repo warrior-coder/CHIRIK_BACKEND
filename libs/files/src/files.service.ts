@@ -8,7 +8,7 @@ export class FilesService {
     public async writeImageFile(file: Express.Multer.File): Promise<string> {
         const fileExtension = path.extname(file.originalname).toLowerCase();
         const fileName = uuid.v4() + fileExtension;
-        const filePath = path.join(__dirname, '..', '..', '..', '..', 'static', 'images');
+        const filePath = path.join(__dirname, '..', '..', '..', 'static', 'images');
         const isPathExists = fs.existsSync(filePath);
 
         if (!isPathExists) {
@@ -23,7 +23,7 @@ export class FilesService {
     }
 
     public removeImageFile(fileName: string): void {
-        const filePath = path.join(__dirname, '..', '..', '..', '..', 'static', 'images', fileName);
+        const filePath = path.join(__dirname, '..', '..', '..', 'static', 'images', fileName);
         const isPathExists = fs.existsSync(filePath);
 
         if (isPathExists) {
