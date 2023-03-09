@@ -4,14 +4,18 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 import { ConfigService } from '@nestjs/config';
 import * as bcryptjs from 'bcryptjs';
 import * as crypto from 'crypto';
+import { Response } from 'express';
 import { SentMessageInfo } from 'nodemailer';
 import * as uuid from 'uuid';
 
+import { RolesEntity } from 'src/roles/entities/roles.entity';
+import { RolesService } from 'src/roles/services/roles.service';
 import { UsersEntity } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';
+import { VerificationCodeDto } from '../dto/verification-code.dto';
 import { SessionsEntity } from '../entities/session.entity';
 import { PrivacyInfo } from '../interfaces/privacy-info.interface';
 import { UserAndSession } from '../interfaces/user-with-session.interface';
@@ -23,7 +27,28 @@ export class AuthService {
         private readonly mailerService: MailerService,
         @InjectRedis() private readonly redisRepository: Redis,
         private readonly configService: ConfigService,
+        private readonly rolesService: RolesService,
     ) {}
+
+    public async confirmEmailAndRegisterUser(
+        verificationCodeDto: VerificationCodeDto,
+        privacyInfo: PrivacyInfo,
+        response: Response,
+    ) {
+        const signUpUserDto = await this.confirmEmailAndGetSignUpUserDto(verificationCodeDto.value);
+        const { user, session } = await this.registerUser(signUpUserDto, privacyInfo);
+        const role: RolesEntity = await this.rolesService.getRoleByValue('user');
+
+        await this.rolesService.setRoleForUser(role.id, user.id);
+
+        response.cookie('SESSION_ID', session.id, {
+            expires: session.expiresAt,
+            sameSite: 'strict',
+            httpOnly: true,
+        });
+
+        return user;
+    }
 
     public async signUpUser(signUpUserDto: SignUpUserDto): Promise<SentMessageInfo> {
         const candidateUser = await this.usersService.getUserByEmail(signUpUserDto.email);
@@ -32,8 +57,16 @@ export class AuthService {
         }
 
         const verificationCode = crypto.randomBytes(3).toString('hex');
+        const verificationCodeLifetimeInMilliseconds = Number(
+            this.configService.get<number>('VERIFICATION_CODE_LIFETIME_IN_MILLISECONDS'),
+        );
 
-        await this.redisRepository.set(verificationCode, JSON.stringify(signUpUserDto), 'EX', 5 * 60); // s: 5m * 60s
+        await this.redisRepository.set(
+            verificationCode,
+            JSON.stringify(signUpUserDto),
+            'PX',
+            verificationCodeLifetimeInMilliseconds,
+        );
 
         return this.sendConfirmationEmail(signUpUserDto.email, verificationCode);
     }
@@ -66,16 +99,23 @@ export class AuthService {
         };
     }
 
-    public async signInUser(signInUserDto: SignInUserDto, privacyInfo: PrivacyInfo): Promise<UserAndSession> {
+    public async signInUser(
+        signInUserDto: SignInUserDto,
+        privacyInfo: PrivacyInfo,
+        response: Response,
+    ): Promise<UsersEntity> {
         const user = await this.validateUser(signInUserDto);
         const session = await this.createSession(user, privacyInfo);
 
         await this.sendLoginNotificationEmail(signInUserDto.email, privacyInfo);
 
-        return {
-            user,
-            session,
-        };
+        response.cookie('SESSION_ID', session.id, {
+            expires: session.expiresAt,
+            sameSite: 'strict',
+            httpOnly: true,
+        });
+
+        return user;
     }
 
     private async createSession(user: UsersEntity, privacyInfo: PrivacyInfo): Promise<SessionsEntity> {
@@ -111,7 +151,9 @@ export class AuthService {
         return user;
     }
 
-    public async signOutUser(currentSessionId: string): Promise<void> {
+    public async signOutUser(currentSessionId: string, response: Response): Promise<void> {
+        response.clearCookie('SESSION_ID');
+
         await this.redisRepository.del(currentSessionId);
     }
 

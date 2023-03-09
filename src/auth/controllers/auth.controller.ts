@@ -4,8 +4,6 @@ import { Response } from 'express';
 import { CurrentSessionIdDecorator } from 'src/auth/decorators/current-session-id-decorator.decorator';
 import { PrivacyInfoDecorator } from 'src/auth/decorators/privacy-info.decorator';
 import { ValidationPipe } from 'src/pipes/validation.pipe';
-import { RolesEntity } from 'src/roles/entities/roles.entity';
-import { RolesService } from 'src/roles/services/roles.service';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';
@@ -15,7 +13,7 @@ import { AuthService } from '../services/auth.service';
 
 @Controller('/auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService, private readonly rolesService: RolesService) {}
+    constructor(private readonly authService: AuthService) {}
 
     @UsePipes(ValidationPipe)
     @Post('/sign-up')
@@ -29,19 +27,9 @@ export class AuthController {
         @PrivacyInfoDecorator() privacyInfo: PrivacyInfo,
         @Res() response: Response,
     ) {
-        const signUpUserDto = await this.authService.confirmEmailAndGetSignUpUserDto(verificationCodeDto.value);
-        const { user, session } = await this.authService.registerUser(signUpUserDto, privacyInfo);
-        const role: RolesEntity = await this.rolesService.getRoleByValue('user');
+        const user = await this.authService.confirmEmailAndRegisterUser(verificationCodeDto, privacyInfo, response);
 
-        await this.rolesService.setRoleForUser(role.id, user.id);
-
-        response.cookie('SESSION_ID', session.id, {
-            expires: session.expiresAt,
-            sameSite: 'strict',
-            httpOnly: true,
-        });
-
-        return response.send(user);
+        response.send(user);
     }
 
     @Post('/sign-in')
@@ -50,22 +38,14 @@ export class AuthController {
         @PrivacyInfoDecorator() privacyInfo: PrivacyInfo,
         @Res() response: Response,
     ) {
-        const { user, session } = await this.authService.signInUser(signInUserDto, privacyInfo);
+        const user = await this.authService.signInUser(signInUserDto, privacyInfo, response);
 
-        response.cookie('SESSION_ID', session.id, {
-            expires: session.expiresAt,
-            sameSite: 'strict',
-            httpOnly: true,
-        });
-
-        return response.send(user);
+        response.send(user);
     }
 
     @Post('/sign-out')
     public async signOutUser(@CurrentSessionIdDecorator() currentSessionId: string, @Res() response: Response) {
-        response.clearCookie('SESSION_ID');
-
-        await this.authService.signOutUser(currentSessionId);
+        await this.authService.signOutUser(currentSessionId, response);
 
         response.end();
     }
