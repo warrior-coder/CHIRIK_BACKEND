@@ -5,13 +5,13 @@ import { Response, NextFunction } from 'express';
 import { UserSessionsEntity } from 'src/auth/entities/users-session.entity';
 import { UsersService } from 'src/users/services/users.service';
 
-import { RequestWithUser } from '../interfaces/request-with-user.interface';
+import { RequestWithCurrentUserId } from '../interfaces/request-with-user.interface';
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
     constructor(private readonly usersService: UsersService, @InjectRedis() private readonly redisRepository: Redis) {}
 
-    public async use(request: RequestWithUser, response: Response, next: NextFunction) {
+    public async use(request: RequestWithCurrentUserId, response: Response, next: NextFunction): Promise<void> {
         const sessionId = request.cookies['SESSION_ID'];
 
         if (!sessionId) {
@@ -21,11 +21,9 @@ export class AuthMiddleware implements NestMiddleware {
         const userSession: UserSessionsEntity = JSON.parse(await this.redisRepository.get(sessionId));
 
         if (userSession) {
-            const currentUser = await this.usersService.getUserById(userSession.userId);
-
-            request.currentUser = currentUser;
+            request.currentUserId = userSession.userId;
         } else {
-            request.currentUser = null;
+            request.currentUserId = null;
         }
 
         next();

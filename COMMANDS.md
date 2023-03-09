@@ -1,9 +1,19 @@
 # COMMANDS
 
-ESLint packages:
+Prettier and ESLint packages:
 
 ```TEXT
-npm install -d @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint-plugin-prettier eslint-plugin-sort-destructure-keys eslint-plugin-typescript-sort-keys prettier --save-dev
+npm install
+    @typescript-eslint/eslint-plugin
+    @typescript-eslint/parser eslint
+    eslint-config-prettier
+    eslint-import-resolver-typescript
+    eslint-plugin-import
+    eslint-plugin-prettier
+    eslint-plugin-sort-destructure-keys
+    eslint-plugin-typescript-sort-keys
+    prettier
+    --save-dev
 ```
 
 Create database:

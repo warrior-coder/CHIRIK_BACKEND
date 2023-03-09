@@ -4,6 +4,9 @@ import { Response } from 'express';
 import { CurrentSessionIdDecorator } from 'src/auth/decorators/current-session-id-decorator.decorator';
 import { PrivacyInfoDecorator } from 'src/auth/decorators/privacy-info.decorator';
 import { ValidationPipe } from 'src/pipes/validation.pipe';
+import { RolesEntity } from 'src/roles/entities/roles.entity';
+import { UsersRolesEntity } from 'src/roles/entities/users-roles.entity';
+import { RolesService } from 'src/roles/services/roles.service';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';
@@ -13,7 +16,7 @@ import { AuthService } from '../services/auth.service';
 
 @Controller('/auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) {}
+    constructor(private readonly authService: AuthService, private readonly rolesService: RolesService) {}
 
     @UsePipes(ValidationPipe)
     @Post('/sign-up')
@@ -28,15 +31,17 @@ export class AuthController {
         @Res() response: Response,
     ) {
         const signUpUserDto = await this.authService.confirmEmailAndGetSignUpUserDto(verificationCodeDto.value);
-        const obj = await this.authService.registerUser(signUpUserDto, privacyInfo);
+        const { user, userSession } = await this.authService.registerUser(signUpUserDto, privacyInfo);
+        const role: RolesEntity = await this.rolesService.getRoleByValue('user');
+        const userRole: UsersRolesEntity = await this.rolesService.setRoleForUser(role.id, user.id);
 
-        response.cookie('SESSION_ID', obj.userSession.id, {
+        response.cookie('SESSION_ID', userSession.id, {
             expires: new Date(new Date().getTime() + 10 * 60 * 1000),
             sameSite: 'strict',
             httpOnly: true,
         });
 
-        return response.send(obj.user);
+        return response.send(user);
     }
 
     @Post('/sign-in')

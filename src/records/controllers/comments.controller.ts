@@ -1,8 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '@app/auth';
-import { CurrentUserDecorator } from 'src/auth/decorators/current-user.decorator';
-import { UsersEntity } from 'src/users/entities/users.entity';
+import { CurrentUserIdDecorator } from 'src/auth/decorators/current-user.decorator';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { EditCommentDto } from '../dto/edit-comment.dto';
@@ -15,14 +14,12 @@ export class CommentsController {
     constructor(private readonly recordsService: RecordsService, private readonly commentsService: CommentsService) {}
 
     @Post('/record/:recordId')
-    public async createCommentOnRecord(
+    public createCommentOnRecord(
         @Body() createCommentDto: CreateCommentDto,
         @Param('recordId', ParseIntPipe) recordId: number,
-        @CurrentUserDecorator() currentUser: UsersEntity,
+        @CurrentUserIdDecorator() currentUserId: number,
     ) {
-        const record = await this.recordsService.getRecordById(recordId);
-
-        return this.commentsService.createCommentOnRecord(createCommentDto, currentUser, record);
+        return this.commentsService.createCommentOnRecord(createCommentDto, currentUserId, recordId);
     }
 
     @Put('/:commentId')
