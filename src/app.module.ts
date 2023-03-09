@@ -7,6 +7,7 @@ import { ServeStaticConfig } from '../configs/serve-static.config';
 import { AuthModule } from './auth/auth.module';
 import { AuthMiddleware } from './auth/middlewares/auth.middleware';
 import { CommentsController } from './records/controllers/comments.controller';
+import { LikesController } from './records/controllers/likes.controller';
 import { RecordsController } from './records/controllers/records.controller';
 import { RecordsModule } from './records/records.module';
 import { RestrictionsController } from './restrictions/controllers/restrictions.controller';
@@ -35,6 +36,6 @@ export class AppModule {
     public configure(consumer: MiddlewareConsumer): void {
         consumer
             .apply(AuthMiddleware)
-            .forRoutes(UsersController, CommentsController, RecordsController, RestrictionsController);
+            .forRoutes(UsersController, CommentsController, RecordsController, RestrictionsController, LikesController);
     }
 }

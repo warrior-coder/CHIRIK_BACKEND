@@ -5,7 +5,7 @@ import { SessionsEntity } from '../entities/session.entity';
 
 @Injectable()
 export class CookiesService {
-    public putSession(response: Response, session: SessionsEntity) {
+    public putSession(response: Response, session: SessionsEntity): void {
         response.cookie('SESSION_ID', session.id, {
             expires: session.expiresAt,
             sameSite: 'strict',
@@ -13,7 +13,7 @@ export class CookiesService {
         });
     }
 
-    public clearSession(response: Response) {
+    public clearSession(response: Response): void {
         response.clearCookie('SESSION_ID');
     }
 }

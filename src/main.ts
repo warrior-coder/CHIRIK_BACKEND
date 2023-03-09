@@ -10,7 +10,7 @@ async function bootstrap() {
 
     app.enableCors({
         origin: '*',
-        methods: ['GET', 'POST'],
+        methods: '*',
         allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
     });
     app.useGlobalFilters(new AllExceptionsFilter());
