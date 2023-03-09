@@ -19,5 +19,6 @@ import { AuthService } from './services/auth.service';
         RedisModule.forRootAsync({ useClass: RedisConfig }),
         RolesModule,
     ],
+    exports: [],
 })
 export class AuthModule {}

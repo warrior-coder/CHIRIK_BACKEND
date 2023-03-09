@@ -1,9 +1,6 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { NestPgModule } from 'nest-pg';
-
-import { NestPgConfig } from 'configs/nest-pg.config';
 
 import { ServeStaticConfig } from '../configs/serve-static.config';
 
@@ -26,7 +23,6 @@ import { UsersModule } from './users/users.module';
             envFilePath: '.env',
             isGlobal: true,
         }),
-        NestPgModule.registerAsync({ useClass: NestPgConfig }),
         ServeStaticModule.forRootAsync({ useClass: ServeStaticConfig }),
         UsersModule,
         AuthModule,
