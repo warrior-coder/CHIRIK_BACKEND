@@ -15,13 +15,12 @@ export class UsersService {
         `);
     }
 
-    public async getUserById(userId: number): Promise<UsersEntity | null> {
+    public async getUser(userId: number): Promise<UsersEntity | null> {
         const selectedRows: UsersEntity[] = await this.pgConnection.rows<UsersEntity>(
             `
                 SELECT u.*
                 FROM users AS u
-                WHERE u.id = $1::INT
-                LIMIT 1;
+                WHERE u.id = $1::INT;
             `,
             [userId],
         );
@@ -39,8 +38,7 @@ export class UsersService {
             `
                 SELECT u.*
                 FROM users AS u
-                WHERE u.email = $1::VARCHAR(32)
-                LIMIT 1;
+                WHERE u.email = $1::VARCHAR(32);
             `,
             [userEmail],
         );

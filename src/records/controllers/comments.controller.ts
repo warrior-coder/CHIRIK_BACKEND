@@ -6,12 +6,11 @@ import { CurrentUserIdDecorator } from 'src/auth/decorators/current-user.decorat
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { EditCommentDto } from '../dto/edit-comment.dto';
 import { CommentsService } from '../services/comments.service';
-import { RecordsService } from '../services/records.service';
 
 @UseGuards(AuthGuard)
 @Controller('/comments')
 export class CommentsController {
-    constructor(private readonly recordsService: RecordsService, private readonly commentsService: CommentsService) {}
+    constructor(private readonly commentsService: CommentsService) {}
 
     @Post('/record/:recordId')
     public createCommentOnRecord(
@@ -23,40 +22,27 @@ export class CommentsController {
     }
 
     @Put('/:commentId')
-    public async editCommentById(
-        @Param('commentId', ParseIntPipe) commentId: number,
-        @Body() editCommentDto: EditCommentDto,
-    ) {
-        const comment = await this.commentsService.getCommentById(commentId);
-
-        return this.commentsService.editComment(comment, editCommentDto);
+    public editComment(@Param('commentId', ParseIntPipe) commentId: number, @Body() editCommentDto: EditCommentDto) {
+        return this.commentsService.editComment(commentId, editCommentDto);
     }
 
     @Get('/count/record/:recordId')
-    public async getRecordCommentsCount(@Param('recordId', ParseIntPipe) recordId: number) {
-        const record = await this.recordsService.getRecordById(recordId);
-
-        return this.commentsService.getRecordCommentsCount(record);
+    public getRecordCommentsCount(@Param('recordId', ParseIntPipe) recordId: number) {
+        return this.commentsService.getRecordCommentsCount(recordId);
     }
 
     @Get('/:commentId')
-    public async getCommentById(@Param('commentId', ParseIntPipe) commentId: number) {
-        const comment = await this.commentsService.getCommentById(commentId);
-
-        return comment;
+    public getComment(@Param('commentId', ParseIntPipe) commentId: number) {
+        return this.commentsService.getComment(commentId);
     }
 
     @Get('/record/:recordId')
-    public async getRecordComments(@Param('recordId', ParseIntPipe) recordId: number) {
-        const record = await this.recordsService.getRecordById(recordId);
-
-        return this.commentsService.getRecordComments(record);
+    public getRecordComments(@Param('recordId', ParseIntPipe) recordId: number) {
+        return this.commentsService.getRecordComments(recordId);
     }
 
     @Delete('/:commentId')
-    public async deleteCommentById(@Param('commentId', ParseIntPipe) commentId: number) {
-        const comment = await this.commentsService.getCommentById(commentId);
-
-        return this.commentsService.deleteComment(comment);
+    public deleteComment(@Param('commentId', ParseIntPipe) commentId: number) {
+        return this.commentsService.deleteComment(commentId);
     }
 }

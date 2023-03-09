@@ -1,18 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { NestPgPool, PgConnection } from 'nest-pg';
 
-import { UsersEntity } from 'src/users/entities/users.entity';
-
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { EditCommentDto } from '../dto/edit-comment.dto';
 import { RecordCommentsEntity } from '../entities/record-comments.entity';
-import { RecordsEntity } from '../entities/records.entity';
 
 @Injectable()
 export class CommentsService {
     constructor(@PgConnection() private readonly pgConnection: NestPgPool) {}
 
-    public async getCommentById(commentId: number): Promise<RecordCommentsEntity | null> {
+    public async getComment(commentId: number): Promise<RecordCommentsEntity | null> {
         const selectedRows: RecordCommentsEntity[] = await this.pgConnection.rows<RecordCommentsEntity>(
             `
                 SELECT rc.*
@@ -25,24 +22,6 @@ export class CommentsService {
 
         if (!comment) {
             return null;
-        }
-
-        return comment;
-    }
-
-    public async getCommentByIdOrThrow(commentId: number): Promise<RecordCommentsEntity> {
-        const selectedRows: RecordCommentsEntity[] = await this.pgConnection.rows<RecordCommentsEntity>(
-            `
-                SELECT rc.*
-                FROM record_comments AS rc
-                WHERE rc.id = $1::INT;
-            `,
-            [commentId],
-        );
-        const comment: RecordCommentsEntity | undefined = selectedRows[0];
-
-        if (!comment) {
-            throw new NotFoundException('Comment not found.');
         }
 
         return comment;
@@ -70,14 +49,7 @@ export class CommentsService {
         return comment;
     }
 
-    public async editComment(
-        comment: RecordCommentsEntity,
-        editCommentDto: EditCommentDto,
-    ): Promise<RecordCommentsEntity> {
-        if (!comment) {
-            throw new NotFoundException('Comment not found.');
-        }
-
+    public async editComment(commentId: number, editCommentDto: EditCommentDto): Promise<RecordCommentsEntity> {
         if (!editCommentDto.text) {
             throw new BadRequestException('Comment has no text.');
         }
@@ -89,58 +61,46 @@ export class CommentsService {
                 WHERE id = $2::INT
                 RETURNING id, "text", created_at, author_id, record_id;
             `,
-            [editCommentDto.text, comment.id],
+            [editCommentDto.text, commentId],
         );
         const updatedComment: RecordCommentsEntity = updatedRows[0];
 
         return updatedComment;
     }
 
-    public async getRecordCommentsCount(record: RecordsEntity): Promise<number> {
-        if (!record) {
-            throw new NotFoundException('Record not found.');
-        }
-
+    public async getRecordCommentsCount(recordId: number): Promise<number> {
         const queryResultRows = await this.pgConnection.rows<any>(
             `
                 SELECT COUNT(*) AS record_comments_count
                 FROM record_comments AS rc
                 WHERE rc.record_id = $1::INT;
             `,
-            [record.id],
+            [recordId],
         );
         const recordCommentsCount: number = parseInt(queryResultRows[0]['record_comments_count']);
 
         return recordCommentsCount;
     }
 
-    public getRecordComments(record: RecordsEntity): Promise<RecordCommentsEntity[]> {
-        if (!record) {
-            throw new NotFoundException('Record not found.');
-        }
-
+    public getRecordComments(recordId: number): Promise<RecordCommentsEntity[]> {
         return this.pgConnection.rows<RecordCommentsEntity>(
             `
                 SELECT rc.*
                 FROM record_comments AS rc
                 WHERE rc.record_id = $1::INT;
             `,
-            [record.id],
+            [recordId],
         );
     }
 
-    public deleteComment(comment: RecordCommentsEntity): Promise<any> {
-        if (!comment) {
-            throw new NotFoundException('Comment not found.');
-        }
-
+    public deleteComment(commentId: number): Promise<any> {
         return this.pgConnection.rows<any>(
             `
                 DELETE
                 FROM record_comments AS rc
                 WHERE rc.id = $1::INT;
             `,
-            [comment.id],
+            [commentId],
         );
     }
 }

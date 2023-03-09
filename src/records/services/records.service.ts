@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { NestPgPool, PgConnection } from 'nest-pg';
 
 import { FilesService } from '@app/files';
-import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateRecordDto } from '../dto/create-record.dto';
 import { EditRecordDto } from '../dto/edit-record.dto';
@@ -128,7 +127,7 @@ export class RecordsService {
     }
 
     public async deleteRecord(recordId: number): Promise<any> {
-        const record = await this.getRecordById(recordId);
+        const record = await this.getRecord(recordId);
 
         if (!record) {
             throw new NotFoundException('Record not found.');
@@ -148,13 +147,12 @@ export class RecordsService {
         );
     }
 
-    public async getRecordById(recordId: number): Promise<RecordsEntity | null> {
+    public async getRecord(recordId: number): Promise<RecordsEntity | null> {
         const selectedRows: RecordsEntity[] = await this.pgConnection.rows<RecordsEntity>(
             `
                 SELECT r.*
                 FROM records AS r
-                WHERE r.id = $1::INT
-                LIMIT 1;
+                WHERE r.id = $1::INT;
             `,
             [recordId],
         );
@@ -162,36 +160,6 @@ export class RecordsService {
 
         if (!record) {
             return null;
-        }
-
-        const recordImages: RecordImagesEntity[] = await this.pgConnection.rows<RecordImagesEntity>(
-            `
-                SELECT ri.*
-                FROM record_images AS ri
-                WHERE ri.record_id = $1::INT;
-            `,
-            [record.id],
-        );
-
-        record.images = recordImages;
-
-        return record;
-    }
-
-    public async getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
-        const selectedRows: RecordsEntity[] = await this.pgConnection.rows<RecordsEntity>(
-            `
-                SELECT r.*
-                FROM records AS r
-                WHERE r.id = $1::INT
-                LIMIT 1;
-            `,
-            [recordId],
-        );
-        const record: RecordsEntity | undefined = selectedRows[0];
-
-        if (!record) {
-            throw new NotFoundException('Record not found.');
         }
 
         const recordImages: RecordImagesEntity[] = await this.pgConnection.rows<RecordImagesEntity>(

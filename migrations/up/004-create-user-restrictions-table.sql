@@ -1,8 +1,8 @@
 -- user_restrictions
 CREATE TABLE public.user_restrictions(
     id SERIAL,
-    "action" VARCHAR(16) NOT NULL,
-    "subject" VARCHAR(16) NOT NULL,
+    "action" VARCHAR(32) NOT NULL,
+    "subject" VARCHAR(32) NOT NULL,
     initiator_user_id INT,
     restricted_user_id INT,
 

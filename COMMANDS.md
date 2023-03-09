@@ -22,14 +22,14 @@ CREATE DATABASE chirik;
 Run PostgreSQL script from file:
 
 ```TEXT
-sudo docker cp ./migrations/up/001-create-base-tables.sql chirik_postgres:/migrations/up/001-create-base-tables.sql
-\i ./migrations/up/001-create-base-tables.sql
+sudo docker cp ./migrations/up/<migration>.sql chirik_postgres:/migrations/up/<migration>.sql
+\i ./migrations/up/<migration>.sql
 ```
 
 PostgreSQL CLI in Docker container:
 
 ```TEXT
-$ docker exec -i -t chirik_postgres sh
+$ sudo docker exec -i -t chirik_postgres sh
 # psql -U postgres -h localhost
 postgres=# \l
 postgres=# \c chirik
@@ -40,9 +40,9 @@ chirik=# \q
 Redis CLI in Docker container:
 
 ```TEXT
-$ docker exec -i -t chirik_redis sh
+$ sudo docker exec -i -t chirik_redis sh
 # redis-cli
-127.0.0.1:6379> keys *
+127.0.0.1:6379> KEYS *
 ```
 
 Some of HTTP exceptions:

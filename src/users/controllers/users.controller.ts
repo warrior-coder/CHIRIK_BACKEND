@@ -15,14 +15,12 @@ export class UsersController {
     }
 
     @Get('/:userId')
-    public getUserById(@Param('userId', ParseIntPipe) userId: number) {
-        return this.usersService.getUserById(userId);
+    public getUser(@Param('userId', ParseIntPipe) userId: number) {
+        return this.usersService.getUser(userId);
     }
 
     @Delete('/:userId')
-    public async deleteUser(@Param('userId', ParseIntPipe) userId: number) {
-        const user = await this.usersService.getUserById(userId);
-
-        return this.usersService.deleteUser(user);
+    public deleteUser(@Param('userId', ParseIntPipe) userId: number) {
+        return this.usersService.getUser(userId);
     }
 }

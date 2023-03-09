@@ -61,20 +61,20 @@ export class RecordsController {
     }
 
     @Patch('/:recordId')
-    public async editRecordById(@Param('recordId', ParseIntPipe) recordId: number, @Body() editRecordDto: any) {
-        const record = await this.recordsService.getRecordById(recordId);
+    public async editRecord(@Param('recordId', ParseIntPipe) recordId: number, @Body() editRecordDto: any) {
+        const record = await this.recordsService.getRecord(recordId);
 
         return this.recordsService.editRecord(record, editRecordDto);
     }
 
     @Delete('/:recordId')
-    public deleteRecordById(@Param('recordId', ParseIntPipe) recordId: number) {
+    public deleteRecord(@Param('recordId', ParseIntPipe) recordId: number) {
         return this.recordsService.deleteRecord(recordId);
     }
 
     @Get('/:recordId')
-    public getRecordById(@Param('recordId', ParseIntPipe) recordId: number) {
-        return this.recordsService.getRecordById(recordId);
+    public getRecord(@Param('recordId', ParseIntPipe) recordId: number) {
+        return this.recordsService.getRecord(recordId);
     }
 
     @Post('/:recordId/like')
