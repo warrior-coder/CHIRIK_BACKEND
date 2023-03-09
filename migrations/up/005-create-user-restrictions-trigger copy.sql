@@ -9,7 +9,7 @@ BEGIN
     END IF;
 
     IF EXISTS(
-        SELECT ur."action", ur."subject", ur.initiator_user_id, ur.restricted_user_id
+        SELECT ur.*
         FROM public.user_restrictions AS ur
         WHERE ur."action" = NEW."action"
             AND ur."subject" = NEW."subject"
