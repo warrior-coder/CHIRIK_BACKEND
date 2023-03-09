@@ -10,8 +10,6 @@ npm install
     eslint-import-resolver-typescript
     eslint-plugin-import
     eslint-plugin-prettier
-    eslint-plugin-sort-destructure-keys
-    eslint-plugin-typescript-sort-keys
     prettier
     --save-dev
 ```
@@ -43,7 +41,7 @@ Redis CLI in Docker container:
 
 ```TEXT
 $ docker exec -i -t chirik_redis sh
-/data # redis-cli
+# redis-cli
 127.0.0.1:6379> keys *
 ```
 

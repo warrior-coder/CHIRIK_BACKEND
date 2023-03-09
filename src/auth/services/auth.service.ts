@@ -6,7 +6,6 @@ import * as bcryptjs from 'bcryptjs';
 import * as crypto from 'crypto';
 import { Response } from 'express';
 import { SentMessageInfo } from 'nodemailer';
-import * as uuid from 'uuid';
 
 import { RolesEntity } from 'src/roles/entities/roles.entity';
 import { RolesService } from 'src/roles/services/roles.service';
@@ -16,11 +15,11 @@ import { UsersService } from 'src/users/services/users.service';
 import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';
 import { VerificationCodeDto } from '../dto/verification-code.dto';
-import { SessionsEntity } from '../entities/session.entity';
 import { PrivacyInfo } from '../interfaces/privacy-info.interface';
 import { UserAndSession } from '../interfaces/user-with-session.interface';
 
 import { CookiesService } from './cookies.service';
+import { SessionsService } from './sessions.service';
 
 @Injectable()
 export class AuthService {
@@ -31,6 +30,7 @@ export class AuthService {
         private readonly configService: ConfigService,
         private readonly rolesService: RolesService,
         private readonly cookiesService: CookiesService,
+        private readonly sessionsService: SessionsService,
     ) {}
 
     public async confirmEmailAndRegisterUser(
@@ -90,7 +90,7 @@ export class AuthService {
             ...signUpUserDto,
             password: hashedPassword,
         });
-        const session = await this.createSession(user, privacyInfo);
+        const session = await this.sessionsService.createSession(user, privacyInfo);
 
         return {
             user,
@@ -104,30 +104,13 @@ export class AuthService {
         response: Response,
     ): Promise<UsersEntity> {
         const user = await this.validateUser(signInUserDto);
-        const session = await this.createSession(user, privacyInfo);
+        const session = await this.sessionsService.createSession(user, privacyInfo);
 
         await this.sendLoginNotificationEmail(signInUserDto.email, privacyInfo);
 
         this.cookiesService.putSession(response, session);
 
         return user;
-    }
-
-    private async createSession(user: UsersEntity, privacyInfo: PrivacyInfo): Promise<SessionsEntity> {
-        const sessionLifetimeInMilliseconds = Number(
-            this.configService.get<number>('SESSION_LIFETIME_IN_MILLISECONDS'),
-        );
-        const session: SessionsEntity = {
-            id: uuid.v4(),
-            userId: user.id,
-            privacyInfo,
-            createdAt: new Date(),
-            expiresAt: new Date(new Date().getTime() + sessionLifetimeInMilliseconds),
-        };
-
-        await this.redisRepository.set(session.id, JSON.stringify(session), 'PX', sessionLifetimeInMilliseconds);
-
-        return session;
     }
 
     public async validateUser(signInUserDto: SignInUserDto): Promise<UsersEntity> {

@@ -10,10 +10,11 @@ import { UsersModule } from 'src/users/users.module';
 import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
 import { CookiesService } from './services/cookies.service';
+import { SessionsService } from './services/sessions.service';
 
 @Module({
     controllers: [AuthController],
-    providers: [AuthService, CookiesService],
+    providers: [AuthService, CookiesService, SessionsService],
     imports: [
         UsersModule,
         MailerModule.forRootAsync({ useClass: MailerConfig }),
