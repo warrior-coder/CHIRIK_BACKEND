@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import * as cookieParser from 'cookie-parser';
 
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
@@ -12,8 +13,8 @@ async function bootstrap() {
         methods: ['GET', 'POST'],
         allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
     });
-
     app.useGlobalFilters(new AllExceptionsFilter());
+    app.use(cookieParser());
 
     await app.listen(port, () => {
         // eslint-disable-next-line no-console

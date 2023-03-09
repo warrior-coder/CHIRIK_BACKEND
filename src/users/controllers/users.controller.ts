@@ -1,6 +1,6 @@
 import { Controller, Delete, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 
-import { AuthGuard } from 'src/guards/auth.guard';
+import { AuthGuard } from '@app/auth';
 
 import { UsersService } from '../services/users.service';
 

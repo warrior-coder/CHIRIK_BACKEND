@@ -1,23 +1,10 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    ParseIntPipe,
-    Post,
-    Query,
-    UploadedFiles,
-    UseGuards,
-    UseInterceptors,
-} from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
 
-import { CurrentUserDecorator } from 'src/decorators/current-user.decorator';
-import { AuthGuard } from 'src/guards/auth.guard';
-import { UsersEntity } from 'src/users/entities/users.entity';
+import { AuthGuard } from '@app/auth';
+import { CurrentUserIdDecorator } from 'src/auth/decorators/current-user.decorator';
 
 import { CreateCommentDto } from '../dto/create-comment.dto';
+import { EditCommentDto } from '../dto/edit-comment.dto';
 import { CommentsService } from '../services/comments.service';
 import { RecordsService } from '../services/records.service';
 
@@ -27,14 +14,22 @@ export class CommentsController {
     constructor(private readonly recordsService: RecordsService, private readonly commentsService: CommentsService) {}
 
     @Post('/record/:recordId')
-    public async createCommentOnRecord(
+    public createCommentOnRecord(
         @Body() createCommentDto: CreateCommentDto,
         @Param('recordId', ParseIntPipe) recordId: number,
-        @CurrentUserDecorator() currentUser: UsersEntity,
+        @CurrentUserIdDecorator() currentUserId: number,
     ) {
-        const record = await this.recordsService.getRecordByIdOrThrow(recordId);
+        return this.commentsService.createCommentOnRecord(createCommentDto, currentUserId, recordId);
+    }
 
-        return this.commentsService.createCommentOnRecord(createCommentDto, currentUser, record);
+    @Put('/:commentId')
+    public async editCommentById(
+        @Param('commentId', ParseIntPipe) commentId: number,
+        @Body() editCommentDto: EditCommentDto,
+    ) {
+        const comment = await this.commentsService.getCommentById(commentId);
+
+        return this.commentsService.editComment(comment, editCommentDto);
     }
 
     @Get('/count/record/:recordId')
@@ -46,7 +41,7 @@ export class CommentsController {
 
     @Get('/:commentId')
     public async getCommentById(@Param('commentId', ParseIntPipe) commentId: number) {
-        const comment = await this.commentsService.getCommentByIdOrThrow(commentId);
+        const comment = await this.commentsService.getCommentById(commentId);
 
         return comment;
     }
@@ -62,6 +57,6 @@ export class CommentsController {
     public async deleteCommentById(@Param('commentId', ParseIntPipe) commentId: number) {
         const comment = await this.commentsService.getCommentById(commentId);
 
-        return this.commentsService.clearCommentAndMarkAsDeleted(comment);
+        return this.commentsService.deleteComment(comment);
     }
 }

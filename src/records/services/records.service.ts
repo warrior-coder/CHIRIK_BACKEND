@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DeleteResult, Repository } from 'typeorm';
+import { NestPgPool, PgConnection } from 'nest-pg';
 
-import { FilesService } from 'src/files/files.service';
+import { FilesService } from '@app/files';
 import { UsersEntity } from 'src/users/entities/users.entity';
 
 import { CreateRecordDto } from '../dto/create-record.dto';
+import { EditRecordDto } from '../dto/edit-record.dto';
 import { RecordImagesEntity } from '../entities/record-images.entity';
 import { RecordLikesEntity } from '../entities/record-likes.entity';
 import { RecordsEntity } from '../entities/records.entity';
@@ -13,154 +13,254 @@ import { RecordsEntity } from '../entities/records.entity';
 @Injectable()
 export class RecordsService {
     constructor(
-        @InjectRepository(RecordsEntity) private readonly recordsRepository: Repository<RecordsEntity>,
-        @InjectRepository(RecordImagesEntity) private readonly recordImagesRepository: Repository<RecordImagesEntity>,
         private readonly filesService: FilesService,
-        @InjectRepository(RecordLikesEntity) private readonly recordLikesRepository: Repository<RecordLikesEntity>,
+        @PgConnection() private readonly pgConnection: NestPgPool,
     ) {}
 
-    public getAllUserRecords(user: UsersEntity): Promise<RecordsEntity[]> {
-        if (!user) {
-            throw new NotFoundException('user not found');
+    public async getAllUserRecords(userId: number): Promise<RecordsEntity[]> {
+        const allUserRecords: RecordsEntity[] = await this.pgConnection.rows<RecordsEntity>(
+            `
+                SELECT r.*
+                FROM records AS r
+                INNER JOIN users u ON u.id = r.author_id
+                WHERE r.author_id = $1::INT
+                ORDER BY r.created_at DESC;
+            `,
+            [userId],
+        );
+
+        for (const userRecord of allUserRecords) {
+            const recordImages: RecordImagesEntity[] = await this.pgConnection.rows<RecordImagesEntity>(
+                `
+                    SELECT ri.*
+                    FROM record_images AS ri
+                    WHERE ri.record_id = $1::INT;
+                `,
+                [userRecord.id],
+            );
+
+            userRecord.images = recordImages;
         }
 
-        return this.recordsRepository
-            .createQueryBuilder('records')
-            .leftJoinAndSelect('records.images', 'images')
-            .leftJoinAndSelect('records.author', 'author')
-            .where(`records."isComment" = FALSE AND records."authorId" = :userId`, { userId: user.id })
-            .orderBy('records.createdAt', 'DESC')
-            .getMany();
+        return allUserRecords;
     }
 
-    public getAllRecords() {
-        return this.recordsRepository.find({
-            relations: {
-                images: true,
-                author: true,
-            },
-            order: {
-                createdAt: 'DESC',
-            },
-        });
+    public async getAllRecords(): Promise<RecordsEntity[]> {
+        const allRecords: RecordsEntity[] = await this.pgConnection.rows<RecordsEntity>(`
+            SELECT r.*
+            FROM records AS r
+            ORDER BY r.created_at DESC;
+        `);
+
+        for (const record of allRecords) {
+            const recordImages: RecordImagesEntity[] = await this.pgConnection.rows<RecordImagesEntity>(
+                `
+                    SELECT ri.*
+                    FROM record_images AS ri
+                    WHERE ri.record_id = $1::INT;
+                `,
+                [record.id],
+            );
+
+            record.images = recordImages;
+        }
+
+        return allRecords;
     }
 
     public async createRecord(
         createRecordDto: CreateRecordDto,
-        author: UsersEntity,
+        authorId: number,
         imageFiles: Array<Express.Multer.File> = [],
-    ): Promise<RecordsEntity> {
-        if (!createRecordDto.text && imageFiles.length === 0) {
-            throw new BadRequestException('record cannot be empty');
+    ): Promise<any> {
+        if (!createRecordDto.text) {
+            throw new BadRequestException('Record has no text.');
         }
 
-        const record: RecordsEntity = this.recordsRepository.create({
-            text: createRecordDto.text,
-            author,
-        });
+        const insertedRows: RecordsEntity[] = await this.pgConnection.rows<RecordsEntity>(
+            `
+                INSERT INTO records("text", author_id)
+                VALUES ($1::TEXT, $2::INT)
+                RETURNING id, "text", created_at, author_id;
+            `,
+            [createRecordDto.text, authorId],
+        );
+        const record: RecordsEntity = insertedRows[0];
 
-        await this.recordsRepository.save(record);
+        record.images = [];
 
-        record.images = await Promise.all(
-            imageFiles.map(async (imageFile): Promise<RecordImagesEntity> => {
-                const fileName = await this.filesService.writeImageFile(imageFile);
-                const image = this.recordImagesRepository.create({
-                    name: fileName,
-                    record,
-                });
+        for (const imageFile of imageFiles) {
+            const fileName = await this.filesService.writeImageFile(imageFile);
+            const insertedRows: RecordImagesEntity[] = await this.pgConnection.rows<RecordImagesEntity>(
+                `
+                    INSERT INTO record_images(file_name, record_id)
+                    VALUES ($1::VARCHAR(64), $2::INT)
+                    RETURNING id, file_name, record_id;
+                `,
+                [fileName, record.id],
+            );
+            const recordImage: RecordImagesEntity = insertedRows[0];
 
-                await this.recordImagesRepository.save(image);
+            record.images.push(recordImage);
+        }
 
-                image.record = undefined;
+        return record;
+    }
 
-                return image;
-            }),
+    public editRecord(record: RecordsEntity, editRecordDto: EditRecordDto) {
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        if (!editRecordDto.text) {
+            throw new BadRequestException('Record has no text.');
+        }
+
+        return this.pgConnection.rows<RecordsEntity>(
+            `
+                UPDATE records
+                SET "text" = $1::TEXT
+                WHERE id = $2::INT
+                RETURNING id, "text", created_at, author_id;
+            `,
+            [editRecordDto.text, record.id],
+        );
+    }
+
+    public async deleteRecord(recordId: number): Promise<any> {
+        const record = await this.getRecordById(recordId);
+
+        if (!record) {
+            throw new NotFoundException('Record not found.');
+        }
+
+        for (const recordImage of record.images) {
+            this.filesService.removeImageFile(recordImage['file_name']);
+        }
+
+        return this.pgConnection.rows<any>(
+            `
+                DELETE
+                FROM records AS r
+                WHERE r.id = $1::INT;
+            `,
+            [record.id],
+        );
+    }
+
+    public async getRecordById(recordId: number): Promise<RecordsEntity | null> {
+        const selectedRows: RecordsEntity[] = await this.pgConnection.rows<RecordsEntity>(
+            `
+                SELECT r.*
+                FROM records AS r
+                WHERE r.id = $1::INT
+                LIMIT 1;
+            `,
+            [recordId],
+        );
+        const record: RecordsEntity | undefined = selectedRows[0];
+
+        if (!record) {
+            return null;
+        }
+
+        const recordImages: RecordImagesEntity[] = await this.pgConnection.rows<RecordImagesEntity>(
+            `
+                SELECT ri.*
+                FROM record_images AS ri
+                WHERE ri.record_id = $1::INT;
+            `,
+            [record.id],
         );
 
-        return record;
-    }
-
-    public async deleteRecord(record: RecordsEntity): Promise<RecordsEntity> {
-        if (!record) {
-            throw new NotFoundException('record not found');
-        }
-
-        const recordImages = await this.recordImagesRepository
-            .createQueryBuilder('record_images')
-            .where(`record_images."recordId" = :recordId`, { recordId: record.id })
-            .getMany();
-
-        recordImages.forEach(async (recordImage: RecordImagesEntity) => {
-            this.filesService.removeImageFile(recordImage.name);
-            await this.recordImagesRepository.remove(recordImage);
-        });
-
-        return this.recordsRepository.remove(record);
-    }
-
-    public getRecordById(recordId: number): Promise<RecordsEntity | null> {
-        return this.recordsRepository.findOne({
-            where: {
-                id: recordId,
-            },
-            relations: {
-                author: true,
-                images: true,
-            },
-        });
-    }
-
-    public getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
-        const record = this.recordsRepository.findOne({
-            where: {
-                id: recordId,
-            },
-            relations: {
-                author: true,
-                images: true,
-            },
-        });
-
-        if (!record) {
-            throw new NotFoundException('record not found');
-        }
+        record.images = recordImages;
 
         return record;
     }
 
-    public createLikeOnRecord(record: RecordsEntity, user: UsersEntity): Promise<RecordLikesEntity> {
+    public async getRecordByIdOrThrow(recordId: number): Promise<RecordsEntity> {
+        const selectedRows: RecordsEntity[] = await this.pgConnection.rows<RecordsEntity>(
+            `
+                SELECT r.*
+                FROM records AS r
+                WHERE r.id = $1::INT
+                LIMIT 1;
+            `,
+            [recordId],
+        );
+        const record: RecordsEntity | undefined = selectedRows[0];
+
         if (!record) {
-            throw new NotFoundException('record not found');
+            throw new NotFoundException('Record not found.');
         }
 
-        const likeOnRecord = this.recordLikesRepository.create({
-            record,
-            user,
-        });
+        const recordImages: RecordImagesEntity[] = await this.pgConnection.rows<RecordImagesEntity>(
+            `
+                SELECT ri.*
+                FROM record_images AS ri
+                WHERE ri.record_id = $1::INT;
+            `,
+            [record.id],
+        );
 
-        return this.recordLikesRepository.save(likeOnRecord);
+        record.images = recordImages;
+
+        return record;
     }
 
-    public deleteLikeFromRecord(record: RecordsEntity, user: UsersEntity): Promise<DeleteResult> {
-        if (!record) {
-            throw new NotFoundException('record not found');
-        }
+    public async createLikeOnRecord(recordId: number, userId: number): Promise<RecordLikesEntity> {
+        const insertedRows: RecordLikesEntity[] = await this.pgConnection.rows<RecordLikesEntity>(
+            `
+                INSERT INTO record_likes(record_id, user_id)
+                VALUES ($1::INT, $2::INT)
+                RETURNING id, record_id, user_id;
+            `,
+            [recordId, userId],
+        );
+        const recordLike: RecordLikesEntity = insertedRows[0];
 
-        return this.recordLikesRepository.delete({
-            record,
-            user,
-        });
+        return recordLike;
     }
 
-    public getRecordLikesCount(record: RecordsEntity): Promise<number> {
-        if (!record) {
-            throw new NotFoundException('record not found');
-        }
+    public deleteLikeFromRecord(recordId: number, userId: number): Promise<any> {
+        return this.pgConnection.rows<any>(
+            `
+                DELETE
+                FROM record_likes AS rl
+                WHERE rl.record_id = $1::INT AND rl.user_id = $2::INT;
+            `,
+            [recordId, userId],
+        );
+    }
 
-        return this.recordLikesRepository.count({
-            where: {
-                record,
-            },
-        });
+    public async getRecordLikesCount(recordId: number): Promise<number> {
+        const queryResultRows = await this.pgConnection.rows<any>(
+            `
+                SELECT COUNT(*) AS record_likes_count
+                FROM record_likes AS rl
+                WHERE rl.record_id = $1::INT;
+            `,
+            [recordId],
+        );
+        const recordLikesCount: number = parseInt(queryResultRows[0]['record_likes_count']);
+
+        return recordLikesCount;
+    }
+
+    public async getIsLikeOnRecordExists(recordId: number, userId: number): Promise<boolean> {
+        const queryResultRows = await this.pgConnection.rows<any>(
+            `
+                SELECT EXISTS(
+                    SELECT *
+                    FROM record_likes AS rl
+                    WHERE rl.record_id = $1::INT AND rl.user_id = $2::INT
+                ) AS is_like_exists;
+            `,
+            [recordId, userId],
+        );
+
+        const isLikeOnRecordExists = Boolean(queryResultRows[0]['is_like_exists']);
+
+        return isLikeOnRecordExists;
     }
 }

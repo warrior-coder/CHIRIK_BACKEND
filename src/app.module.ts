@@ -1,22 +1,20 @@
-import { MailerModule } from '@nestjs-modules/mailer';
-import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { NestPgModule } from 'nest-pg';
 
-import { TypeOrmConfig } from 'configs/typeorm-config';
+import { NestPgConfig } from 'configs/nest-pg.config';
 
-import { JwtConfig } from '../configs/jwt-config';
-import { MailerConfig } from '../configs/mailer-config';
 import { ServeStaticConfig } from '../configs/serve-static-config';
 
 import { AuthModule } from './auth/auth.module';
-import { FilesModule } from './files/files.module';
-import { AuthMiddleware } from './middlewares/auth.middleware';
+import { AuthMiddleware } from './auth/middlewares/auth.middleware';
 import { CommentsController } from './records/controllers/comments.controller';
 import { RecordsController } from './records/controllers/records.controller';
 import { RecordsModule } from './records/records.module';
+import { RestrictionsController } from './restrictions/controllers/restrictions.controller';
+import { RestrictionsModule } from './restrictions/restrictions.module';
+import { RolesModule } from './roles/roles.module';
 import { UsersController } from './users/controllers/users.controller';
 import { UsersModule } from './users/users.module';
 
@@ -28,27 +26,19 @@ import { UsersModule } from './users/users.module';
             envFilePath: '.env',
             isGlobal: true,
         }),
-        TypeOrmModule.forRootAsync({ useClass: TypeOrmConfig }),
-        MailerModule.forRootAsync({ useClass: MailerConfig }),
+        NestPgModule.registerAsync({ useClass: NestPgConfig }),
         ServeStaticModule.forRootAsync({ useClass: ServeStaticConfig }),
-        JwtModule.registerAsync({ useClass: JwtConfig }),
         UsersModule,
         AuthModule,
         RecordsModule,
-        FilesModule,
+        RolesModule,
+        RestrictionsModule,
     ],
 })
 export class AppModule {
-    public configure(consumer: MiddlewareConsumer) {
+    public configure(consumer: MiddlewareConsumer): void {
         consumer
             .apply(AuthMiddleware)
-            .forRoutes(
-                UsersController,
-                CommentsController,
-                RecordsController,
-                { path: '/sessions/all', method: RequestMethod.GET },
-                { path: '/sessions/:sessionId', method: RequestMethod.DELETE },
-                { path: '/sessions/all', method: RequestMethod.DELETE },
-            );
+            .forRoutes(UsersController, CommentsController, RecordsController, RestrictionsController);
     }
 }

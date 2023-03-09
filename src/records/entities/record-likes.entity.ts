@@ -1,21 +1,5 @@
-import { Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-
-import { UsersEntity } from 'src/users/entities/users.entity';
-
-import { RecordsEntity } from './records.entity';
-
-@Entity({ name: 'record_likes' })
-export class RecordLikesEntity {
-    @PrimaryGeneratedColumn()
+export interface RecordLikesEntity {
     id: number;
-
-    @ManyToOne(() => RecordsEntity, {
-        onDelete: 'CASCADE',
-    })
-    record: RecordsEntity;
-
-    @ManyToOne(() => UsersEntity, {
-        onDelete: 'CASCADE',
-    })
-    user: UsersEntity;
+    record_id: number;
+    user_id: number;
 }

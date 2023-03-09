@@ -1,26 +1,12 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-
-import { UsersEntity } from 'src/users/entities/users.entity';
-
+import { RecordCommentsEntity } from './record-comments.entity';
 import { RecordImagesEntity } from './record-images.entity';
 
-@Entity({ name: 'records' })
-export class RecordsEntity {
-    @PrimaryGeneratedColumn()
+export interface RecordsEntity {
     id: number;
-
-    @Column({ type: 'timestamp', default: () => 'NOW()' })
-    createdAt: string;
-
-    @Column({ type: 'text' })
     text: string;
+    created_at: string;
+    author_id: number;
 
-    @ManyToOne(() => UsersEntity, {
-        onDelete: 'SET NULL',
-        onUpdate: 'CASCADE',
-    })
-    author: UsersEntity;
-
-    @OneToMany(() => RecordImagesEntity, (image: RecordImagesEntity) => image.record)
-    images: RecordImagesEntity[];
+    images?: RecordImagesEntity[];
+    comments?: RecordCommentsEntity[];
 }

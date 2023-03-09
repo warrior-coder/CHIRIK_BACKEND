@@ -1,24 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { RecordsEntity } from 'src/records/entities/records.entity';
 
-import { RefreshTokensEntity } from 'src/auth/entities/refresh-tokens.entity';
-
-@Entity({ name: 'users' })
-export class UsersEntity {
-    @PrimaryGeneratedColumn()
+export interface UsersEntity {
     id: number;
-
-    @Column({ nullable: false })
     name: string;
-
-    @Column({ unique: true, nullable: false })
     email: string;
-
-    @Column({ nullable: false })
     password: string;
+    created_at: string;
 
-    @Column({ type: 'timestamp', default: () => 'NOW()' })
-    createdAt: Date;
-
-    @OneToMany(() => RefreshTokensEntity, (refreshToken: RefreshTokensEntity) => refreshToken.user)
-    refreshTokens: RefreshTokensEntity[];
+    records?: RecordsEntity[];
 }

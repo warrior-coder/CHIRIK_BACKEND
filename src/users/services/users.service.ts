@@ -1,33 +1,84 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { NestPgPool, PgConnection } from 'nest-pg';
 
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UsersEntity } from '../entities/users.entity';
 
 @Injectable()
 export class UsersService {
-    constructor(@InjectRepository(UsersEntity) private readonly usersRepository: Repository<UsersEntity>) {}
+    constructor(@PgConnection() private readonly pgConnection: NestPgPool) {}
 
     public getAllUsers(): Promise<UsersEntity[]> {
-        return this.usersRepository.find();
+        return this.pgConnection.rows<UsersEntity>(`
+            SELECT u.*
+            FROM users AS u;
+        `);
     }
 
-    public getUserById(id: number): Promise<UsersEntity | null> {
-        return this.usersRepository.findOneBy({ id });
+    public async getUserById(userId: number): Promise<UsersEntity | null> {
+        const selectedRows: UsersEntity[] = await this.pgConnection.rows<UsersEntity>(
+            `
+                SELECT u.*
+                FROM users AS u
+                WHERE u.id = $1::INT
+                LIMIT 1;
+            `,
+            [userId],
+        );
+        const user: UsersEntity | undefined = selectedRows[0];
+
+        if (!user) {
+            return null;
+        }
+
+        return user;
     }
 
-    public getUserByEmail(email: string): Promise<UsersEntity | null> {
-        return this.usersRepository.findOneBy({ email });
+    public async getUserByEmail(userEmail: string): Promise<UsersEntity | null> {
+        const selectedRows: UsersEntity[] = await this.pgConnection.rows<UsersEntity>(
+            `
+                SELECT u.*
+                FROM users AS u
+                WHERE u.email = $1::VARCHAR(32)
+                LIMIT 1;
+            `,
+            [userEmail],
+        );
+        const user: UsersEntity | undefined = selectedRows[0];
+
+        if (!user) {
+            return null;
+        }
+
+        return user;
     }
 
-    public createUser(createUserDto: CreateUserDto): Promise<UsersEntity> {
-        const user = this.usersRepository.create(createUserDto);
+    public async createUser(createUserDto: CreateUserDto): Promise<UsersEntity> {
+        const insertedRows: UsersEntity[] = await this.pgConnection.rows<UsersEntity>(
+            `
+                INSERT INTO users("name", email, "password")
+                VALUES ($1::VARCHAR(32), $2::VARCHAR(64), $3::VARCHAR(128))
+                RETURNING id, "name", email, "password";
+            `,
+            [createUserDto.name, createUserDto.email, createUserDto.password],
+        );
+        const user: UsersEntity = insertedRows[0];
 
-        return this.usersRepository.save(user);
+        return user;
     }
 
     public deleteUser(user: UsersEntity): Promise<any> {
-        return this.usersRepository.remove(user);
+        if (!user) {
+            throw new NotFoundException('User not found.');
+        }
+
+        return this.pgConnection.rows<any>(
+            `
+                DELETE
+                FROM users AS u
+                WHERE u.id = $1::INT;
+            `,
+            [user.id],
+        );
     }
 }
