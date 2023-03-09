@@ -20,6 +20,8 @@ import { SessionsEntity } from '../entities/session.entity';
 import { PrivacyInfo } from '../interfaces/privacy-info.interface';
 import { UserAndSession } from '../interfaces/user-with-session.interface';
 
+import { CookiesService } from './cookies.service';
+
 @Injectable()
 export class AuthService {
     constructor(
@@ -28,6 +30,7 @@ export class AuthService {
         @InjectRedis() private readonly redisRepository: Redis,
         private readonly configService: ConfigService,
         private readonly rolesService: RolesService,
+        private readonly cookiesService: CookiesService,
     ) {}
 
     public async confirmEmailAndRegisterUser(
@@ -41,11 +44,7 @@ export class AuthService {
 
         await this.rolesService.setRoleForUser(role.id, user.id);
 
-        response.cookie('SESSION_ID', session.id, {
-            expires: session.expiresAt,
-            sameSite: 'strict',
-            httpOnly: true,
-        });
+        this.cookiesService.putSession(response, session);
 
         return user;
     }
@@ -109,11 +108,7 @@ export class AuthService {
 
         await this.sendLoginNotificationEmail(signInUserDto.email, privacyInfo);
 
-        response.cookie('SESSION_ID', session.id, {
-            expires: session.expiresAt,
-            sameSite: 'strict',
-            httpOnly: true,
-        });
+        this.cookiesService.putSession(response, session);
 
         return user;
     }
@@ -152,7 +147,7 @@ export class AuthService {
     }
 
     public async signOutUser(currentSessionId: string, response: Response): Promise<void> {
-        response.clearCookie('SESSION_ID');
+        this.cookiesService.clearSession(response);
 
         await this.redisRepository.del(currentSessionId);
     }

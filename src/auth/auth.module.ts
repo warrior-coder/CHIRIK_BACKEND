@@ -9,10 +9,11 @@ import { UsersModule } from 'src/users/users.module';
 
 import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
+import { CookiesService } from './services/cookies.service';
 
 @Module({
     controllers: [AuthController],
-    providers: [AuthService],
+    providers: [AuthService, CookiesService],
     imports: [
         UsersModule,
         MailerModule.forRootAsync({ useClass: MailerConfig }),
