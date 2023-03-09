@@ -29,6 +29,7 @@ export class AuthService {
         }
 
         const verificationCode = crypto.randomBytes(3).toString('hex');
+
         await this.redisRepository.set(verificationCode, JSON.stringify(signUpUserDto), 'EX', 5 * 60); // s: 5m * 60s
 
         return this.sendConfirmationEmail(signUpUserDto.email, verificationCode);

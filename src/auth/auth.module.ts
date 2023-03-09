@@ -2,8 +2,8 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { Module } from '@nestjs/common';
 
-import { MailerConfig } from 'configs/mailer-config';
-import { RedisConfig } from 'configs/redis-config';
+import { MailerConfig } from 'configs/mailer.config';
+import { RedisConfig } from 'configs/redis.config';
 import { RolesModule } from 'src/roles/roles.module';
 import { UsersModule } from 'src/users/users.module';
 

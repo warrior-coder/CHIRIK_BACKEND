@@ -5,7 +5,7 @@ import { NestPgModule } from 'nest-pg';
 
 import { NestPgConfig } from 'configs/nest-pg.config';
 
-import { ServeStaticConfig } from '../configs/serve-static-config';
+import { ServeStaticConfig } from '../configs/serve-static.config';
 
 import { AuthModule } from './auth/auth.module';
 import { AuthMiddleware } from './auth/middlewares/auth.middleware';
