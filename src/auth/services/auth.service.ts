@@ -1,6 +1,7 @@
 import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
 import { MailerService } from '@nestjs-modules/mailer';
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcryptjs from 'bcryptjs';
 import * as crypto from 'crypto';
 import { SentMessageInfo } from 'nodemailer';
@@ -11,8 +12,9 @@ import { UsersService } from 'src/users/services/users.service';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';
 import { SignUpUserDto } from '../dto/sign-up-user.dto';
-import { UserSessionsEntity } from '../entities/users-session.entity';
+import { SessionsEntity } from '../entities/session.entity';
 import { PrivacyInfo } from '../interfaces/privacy-info.interface';
+import { UserAndSession } from '../interfaces/user-with-session.interface';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +22,7 @@ export class AuthService {
         private readonly usersService: UsersService,
         private readonly mailerService: MailerService,
         @InjectRedis() private readonly redisRepository: Redis,
+        private readonly configService: ConfigService,
     ) {}
 
     public async signUpUser(signUpUserDto: SignUpUserDto): Promise<SentMessageInfo> {
@@ -49,42 +52,47 @@ export class AuthService {
         return signUpUserDto;
     }
 
-    public async registerUser(signUpUserDto: SignUpUserDto, privacyInfo: PrivacyInfo): Promise<any> {
+    public async registerUser(signUpUserDto: SignUpUserDto, privacyInfo: PrivacyInfo): Promise<UserAndSession> {
         const hashedPassword = await bcryptjs.hash(signUpUserDto.password, 4);
         const user = await this.usersService.createUser({
             ...signUpUserDto,
             password: hashedPassword,
         });
-        const userSession = await this.createUserSession(user, privacyInfo);
+        const session = await this.createSession(user, privacyInfo);
 
         return {
             user,
-            userSession,
+            session,
         };
     }
 
-    public async signInUser(signInUserDto: SignInUserDto, privacyInfo: PrivacyInfo): Promise<any> {
+    public async signInUser(signInUserDto: SignInUserDto, privacyInfo: PrivacyInfo): Promise<UserAndSession> {
         const user = await this.validateUser(signInUserDto);
-        const userSession = await this.createUserSession(user, privacyInfo);
+        const session = await this.createSession(user, privacyInfo);
 
         await this.sendLoginNotificationEmail(signInUserDto.email, privacyInfo);
 
         return {
             user,
-            userSession,
+            session,
         };
     }
 
-    private async createUserSession(user: UsersEntity, privacyInfo: PrivacyInfo): Promise<UserSessionsEntity> {
-        const userSession: UserSessionsEntity = {
+    private async createSession(user: UsersEntity, privacyInfo: PrivacyInfo): Promise<SessionsEntity> {
+        const sessionLifetimeInMilliseconds = Number(
+            this.configService.get<number>('SESSION_LIFETIME_IN_MILLISECONDS'),
+        );
+        const session: SessionsEntity = {
             id: uuid.v4(),
             userId: user.id,
             privacyInfo,
+            createdAt: new Date(),
+            expiresAt: new Date(new Date().getTime() + sessionLifetimeInMilliseconds),
         };
 
-        await this.redisRepository.set(userSession.id, JSON.stringify(userSession), 'EX', 24 * 60 * 60); // s: 24h * 60m * 60s
+        await this.redisRepository.set(session.id, JSON.stringify(session), 'PX', sessionLifetimeInMilliseconds);
 
-        return userSession;
+        return session;
     }
 
     public async validateUser(signInUserDto: SignInUserDto): Promise<UsersEntity> {

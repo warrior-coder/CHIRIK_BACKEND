@@ -5,7 +5,6 @@ import { CurrentSessionIdDecorator } from 'src/auth/decorators/current-session-i
 import { PrivacyInfoDecorator } from 'src/auth/decorators/privacy-info.decorator';
 import { ValidationPipe } from 'src/pipes/validation.pipe';
 import { RolesEntity } from 'src/roles/entities/roles.entity';
-import { UsersRolesEntity } from 'src/roles/entities/users-roles.entity';
 import { RolesService } from 'src/roles/services/roles.service';
 
 import { SignInUserDto } from '../dto/sign-in-user.dto';
@@ -31,12 +30,13 @@ export class AuthController {
         @Res() response: Response,
     ) {
         const signUpUserDto = await this.authService.confirmEmailAndGetSignUpUserDto(verificationCodeDto.value);
-        const { user, userSession } = await this.authService.registerUser(signUpUserDto, privacyInfo);
+        const { user, session } = await this.authService.registerUser(signUpUserDto, privacyInfo);
         const role: RolesEntity = await this.rolesService.getRoleByValue('user');
-        const userRole: UsersRolesEntity = await this.rolesService.setRoleForUser(role.id, user.id);
 
-        response.cookie('SESSION_ID', userSession.id, {
-            expires: new Date(new Date().getTime() + 10 * 60 * 1000),
+        await this.rolesService.setRoleForUser(role.id, user.id);
+
+        response.cookie('SESSION_ID', session.id, {
+            expires: session.expiresAt,
             sameSite: 'strict',
             httpOnly: true,
         });
@@ -50,15 +50,15 @@ export class AuthController {
         @PrivacyInfoDecorator() privacyInfo: PrivacyInfo,
         @Res() response: Response,
     ) {
-        const obj = await this.authService.signInUser(signInUserDto, privacyInfo);
+        const { user, session } = await this.authService.signInUser(signInUserDto, privacyInfo);
 
-        response.cookie('SESSION_ID', obj.userSession.id, {
-            expires: new Date(new Date().getTime() + 24 * 60 * 60 * 1000), // ms: 24h * 60m * 60s * 1000ms
+        response.cookie('SESSION_ID', session.id, {
+            expires: session.expiresAt,
             sameSite: 'strict',
             httpOnly: true,
         });
 
-        return response.send(obj.user);
+        return response.send(user);
     }
 
     @Post('/sign-out')

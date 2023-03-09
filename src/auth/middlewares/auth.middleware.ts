@@ -2,9 +2,9 @@ import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
 import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { Response, NextFunction } from 'express';
 
-import { UserSessionsEntity } from 'src/auth/entities/users-session.entity';
 import { UsersService } from 'src/users/services/users.service';
 
+import { SessionsEntity } from '../entities/session.entity';
 import { RequestWithCurrentUserId } from '../interfaces/request-with-user.interface';
 
 @Injectable()
@@ -18,10 +18,10 @@ export class AuthMiddleware implements NestMiddleware {
             throw new UnauthorizedException('No SESSION_ID in cookies.');
         }
 
-        const userSession: UserSessionsEntity = JSON.parse(await this.redisRepository.get(sessionId));
+        const session: SessionsEntity = JSON.parse(await this.redisRepository.get(sessionId));
 
-        if (userSession) {
-            request.currentUserId = userSession.userId;
+        if (session) {
+            request.currentUserId = session.userId;
         } else {
             request.currentUserId = null;
         }
